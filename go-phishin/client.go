@@ -1,4 +1,4 @@
-package cli
+package phishin
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ type Client struct {
 	PrintJSON bool
 	Query string
 	Parameters []string
+	Output io.Writer
 }
 
 func NewClient(apiKey string) *Client {
@@ -25,6 +27,7 @@ func NewClient(apiKey string) *Client {
 		HTTPClient: http.DefaultClient,
 		BaseURL: "https://phish.in/api/v1",
 		APIKey: apiKey,
+		Output: os.Stdout,
 	}
 }
 
@@ -59,32 +62,6 @@ func (c *Client) fromArgs(args []string) error {
 	return nil
 }
 
-func (c *Client) GetEras() (ErasOutput, error) {
-	var resp ErasResponse
-	if err := c.Get("eras", &resp); err != nil {
-		return ErasOutput{}, fmt.Errorf("unable to get eras list: %w", err)
-	}
-	o := ErasOutput{
-		One: resp.Data.One,
-		Two: resp.Data.Two,
-		Three: resp.Data.Three,
-		Four: resp.Data.Four,
-	}
-	return o, nil
-}
-
-func (c *Client) GetEra() (EraOutput, error) {
-	var resp EraResponse
-	if err := c.Get("eras", &resp); err != nil {
-		return EraOutput{}, fmt.Errorf("unable to get era details: %w", err)
-	}
-	o := EraOutput{
-		Era: c.Query,
-		EraList: resp.Era,
-	}
-	return o, nil
-}
-
 func (c *Client) Get(endpoint string, data any) error {
 	ctx := context.Background()
 	url := c.FormatURL(endpoint)
@@ -110,5 +87,58 @@ func (c *Client) Get(endpoint string, data any) error {
 	if len(b) == 0 {
 		return errors.New("no response body")
 	}
-	return json.Unmarshal(b, data)
+	err = json.Unmarshal(b, data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to decode json: %v\n", string(b))
+		return err
+	}
+	return nil
+}
+
+func (c *Client) getAndPrintEras() error {
+	eras, err := c.getEras()
+	if err != nil {
+		return fmt.Errorf("couldn't get eras data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSONEras(c.Output, eras)
+	}
+	return prettyPrintEras(c.Output, eras)
+}
+
+func (c *Client) getEras() (ErasOutput, error) {
+	var resp ErasResponse
+	if err := c.Get("eras", &resp); err != nil {
+		return ErasOutput{}, fmt.Errorf("unable to get eras list: %w", err)
+	}
+	o := ErasOutput{
+		One: resp.Data.One,
+		Two: resp.Data.Two,
+		Three: resp.Data.Three,
+		Four: resp.Data.Four,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintEra() error {
+	era, err := c.getEra()
+	if err != nil {
+		return fmt.Errorf("couldn't get era data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSONEra(c.Output, era)
+	}
+	return prettyPrintEra(c.Output, era)
+}
+
+func (c *Client) getEra() (EraOutput, error) {
+	var resp EraResponse
+	if err := c.Get("eras", &resp); err != nil {
+		return EraOutput{}, fmt.Errorf("unable to get era details: %w", err)
+	}
+	o := EraOutput{
+		Era: c.Query,
+		EraList: resp.Era,
+	}
+	return o, nil
 }

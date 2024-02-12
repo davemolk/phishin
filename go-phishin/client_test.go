@@ -1,6 +1,7 @@
-package cli
+package phishin
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -71,13 +72,77 @@ func TestGetEras(t *testing.T) {
 		Three: []string{"2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020"},
 		Four: []string{"2021","2022","2023"},
 	}
-	got, err := c.GetEras()
+	got, err := c.getEras()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
 	}	
+}
+
+func TestGetAndPrintErasText(t *testing.T) {
+	buf := &bytes.Buffer{}
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/eras.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy")
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Eras
+1.0: 1983-1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000
+2.0: 2002, 2003, 2004
+3.0: 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
+4.0: 2021, 2022, 2023
+`
+	err := c.getAndPrintEras()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got %s want %s", got, want)
+	}
+}
+
+func TestGetAndPrintErasJSON(t *testing.T) {
+	buf := &bytes.Buffer{}
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/simple_eras.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy")
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	c.PrintJSON = true
+	want := `{
+  "1.0": [
+    "1992",
+    "1993",
+    "1994",
+    "1995",
+    "1996"
+  ],
+  "2.0": null,
+  "3.0": null,
+  "4.0": null
+}
+`
+	err := c.getAndPrintEras()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got %s want %s", got, want)
+	}
 }
 
 func TestGetEra(t *testing.T) {
@@ -95,11 +160,79 @@ func TestGetEra(t *testing.T) {
 		Era: "3.0",
 		EraList: []string{"2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020"},
 	}
-	got, err := c.GetEra()
+	got, err := c.getEra()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
 	}	
+}
+
+func TestGetAndPrintEraText(t *testing.T) {
+	buf := &bytes.Buffer{}
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/era.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy")
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.Query = "3.0"
+	c.HTTPClient = ts.Client()
+	want := `Era 3.0:
+2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
+`
+	err := c.getAndPrintEra()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got %s want %s", got, want)
+	}
+}
+
+func TestGetAndPrintEraJSON(t *testing.T) {
+	buf := &bytes.Buffer{}
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/era.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy")
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	c.Query = "3.0"
+	c.PrintJSON = true
+	want := `{
+  "Era": "3.0",
+  "years": [
+    "2009",
+    "2010",
+    "2011",
+    "2012",
+    "2013",
+    "2014",
+    "2015",
+    "2016",
+    "2017",
+    "2018",
+    "2019",
+    "2020"
+  ]
+}
+`
+	err := c.getAndPrintEra()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got %s want %s", got, want)
+	}
 }

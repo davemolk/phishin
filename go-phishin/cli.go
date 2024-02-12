@@ -1,8 +1,9 @@
-package cli
+package phishin
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -22,18 +23,19 @@ type ErasOutput struct {
     Four []string `json:"4.0"`
 }
 
-func prettyPrintEras(e ErasOutput) {
-    fmt.Printf(
+func prettyPrintEras(w io.Writer, e ErasOutput) error {
+    _, err := fmt.Fprintf(w,
         "Eras\n1.0: %v\n2.0: %v\n3.0: %v\n4.0: %v\n", strings.Join(e.One, ", "), strings.Join(e.Two, ", "),strings.Join(e.Three, ", "), strings.Join(e.Four, ", "),
     )
+    return err
 }
 
-func printJSONEras(e ErasOutput) error {
+func printJSONEras(w io.Writer, e ErasOutput) error {
     b, err := json.MarshalIndent(&e, "", "  ")
     if err != nil {
         return err
     }
-    fmt.Println(string(b))
+    fmt.Fprintln(w, string(b))
     return nil
 }
 
@@ -43,18 +45,19 @@ type EraResponse struct {
 
 type EraOutput struct {
     Era string
-    EraList []string `json:"era"`
+    EraList []string `json:"years"`
 }
 
-func prettyPrintEra(e EraOutput) {
-    fmt.Printf("Era %s:\n%s\n", e.Era, strings.Join(e.EraList, ", "))
+func prettyPrintEra(w io.Writer, e EraOutput) error {
+    _, err := fmt.Fprintf(w, "Era %s:\n%s\n", e.Era, strings.Join(e.EraList, ", "))
+    return err
 }
 
-func printJSONEra(e EraOutput) error {
+func printJSONEra(w io.Writer, e EraOutput) error {
     b, err := json.MarshalIndent(&e, "", "  ")
     if err != nil {
         return err
     }
-    fmt.Println(string(b))
+    fmt.Fprintln(w, string(b))
     return nil
 }

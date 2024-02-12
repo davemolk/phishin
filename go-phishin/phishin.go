@@ -1,4 +1,4 @@
-package cli
+package phishin
 
 import (
 	"fmt"
@@ -30,7 +30,19 @@ func Run() int {
 
 	endpoint := os.Args[1]
 	switch endpoint {
-		
+	case "eras":
+		if c.Query != "" {
+			if err := c.getAndPrintEra(); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Errorf("eras details endpoint failure: %w", err))
+				return 1
+			}
+			return 0
+		}
+		if err := c.getAndPrintEras(); err != nil {
+			fmt.Fprintln(os.Stderr, "eras list endpoint failure: %w", err)
+			return 1
+		}
+		return 0
 	}
 
 	return 0

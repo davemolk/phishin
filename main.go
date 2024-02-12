@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/davemolk/phishin/cli"
+	phishin "github.com/davemolk/phishin/go-phishin"
 )
 
 func main() {
-	os.Exit(cli.Run())
+	os.Exit(phishin.Run())
 }
