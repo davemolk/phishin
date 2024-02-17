@@ -88,7 +88,7 @@ func (c *Client) fromArgs(args []string) error {
 	case "random-show":
 	case "tracks":
 	case "search":
-	case "playlists":
+	// case "playlists":
 	case "tags":
 	default:
 		return fmt.Errorf("%s is not a recognized command", path)
@@ -131,9 +131,7 @@ func (c *Client) validateParams(output string, verbose bool, sortDir, sortAttr, 
     return nil
 }
 
-func (c *Client) Get(ctx context.Context, path string, data any) error {
-	url := c.FormatURL(path) 
-	// url := "https://phish.in/api/v1/tracks/18477"
+func (c *Client) Get(ctx context.Context, url string, data any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("error building request: %w", err)
@@ -168,8 +166,8 @@ func (c *Client) Get(ctx context.Context, path string, data any) error {
 	return nil
 }
 
-func (c *Client) getAndPrintEras(ctx context.Context) error {
-	eras, err := c.getEras(ctx)
+func (c *Client) getAndPrintEras(ctx context.Context, url string) error {
+	eras, err := c.getEras(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't get eras data: %w", err)
 	}
@@ -179,9 +177,9 @@ func (c *Client) getAndPrintEras(ctx context.Context) error {
 	return prettyPrintEras(c.Output, eras)
 }
 
-func (c *Client) getEras(ctx context.Context) (ErasOutput, error) {
+func (c *Client) getEras(ctx context.Context, url string) (ErasOutput, error) {
 	var resp ErasResponse
-	if err := c.Get(ctx, "eras", &resp); err != nil {
+	if err := c.Get(ctx, url, &resp); err != nil {
 		return ErasOutput{}, fmt.Errorf("unable to get eras list: %w", err)
 	}
 	o := ErasOutput{
@@ -193,8 +191,8 @@ func (c *Client) getEras(ctx context.Context) (ErasOutput, error) {
 	return o, nil
 }
 
-func (c *Client) getAndPrintEra(ctx context.Context) error {
-	era, err := c.getEra(ctx)
+func (c *Client) getAndPrintEra(ctx context.Context, url string) error {
+	era, err := c.getEra(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't get era data: %w", err)
 	}
@@ -204,9 +202,9 @@ func (c *Client) getAndPrintEra(ctx context.Context) error {
 	return prettyPrintEra(c.Output, era)
 }
 
-func (c *Client) getEra(ctx context.Context) (EraOutput, error) {
+func (c *Client) getEra(ctx context.Context, url string) (EraOutput, error) {
 	var resp EraResponse
-	if err := c.Get(ctx, "eras", &resp); err != nil {
+	if err := c.Get(ctx, url, &resp); err != nil {
 		return EraOutput{}, fmt.Errorf("unable to get era details: %w", err)
 	}
 	o := EraOutput{
@@ -216,8 +214,8 @@ func (c *Client) getEra(ctx context.Context) (EraOutput, error) {
 	return o, nil
 }
 
-func (c *Client) getAndPrintYears(ctx context.Context) error {
-	years, err := c.getYears(ctx)
+func (c *Client) getAndPrintYears(ctx context.Context, url string) error {
+	years, err := c.getYears(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't get years data: %w", err)
 	}
@@ -227,9 +225,9 @@ func (c *Client) getAndPrintYears(ctx context.Context) error {
 	return prettyPrintYears(c.Tabwriter, years)
 }
 
-func (c *Client) getYears(ctx context.Context) (YearsOutput, error) {
+func (c *Client) getYears(ctx context.Context, url string) (YearsOutput, error) {
 	var resp YearsResponse
-	if err := c.Get(ctx, "years", &resp); err != nil {
+	if err := c.Get(ctx, url, &resp); err != nil {
 		return YearsOutput{}, fmt.Errorf("unable to get years list: %w", err)
 	}
 
@@ -239,49 +237,47 @@ func (c *Client) getYears(ctx context.Context) (YearsOutput, error) {
 	return o, nil
 }
 
-func (c *Client) getYear(ctx context.Context) (YearOutput, error) {
+func (c *Client) getYear(ctx context.Context, url string) (ShowsOutput, error) {
 	var resp YearResponse
-	if err := c.Get(ctx, "years", &resp); err != nil {
-		return YearOutput{}, fmt.Errorf("unable to get year details: %w", err)
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return ShowsOutput{}, fmt.Errorf("unable to get year details: %w", err)
 	}
-	o := YearOutput{
-		ConcertInfo: resp.Data,
+	o := ShowsOutput{
+		Shows: resp.Data,
 	}
 	return o, nil
 }
 
-func (c *Client) getAndPrintYear(ctx context.Context) error {
-	year, err := c.getYear(ctx)
+func (c *Client) getAndPrintYear(ctx context.Context, url string) error {
+	shows, err := c.getYear(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't get year data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONYear(c.Output, year)
+		return printJSONShows(c.Output, shows)
 	}
-	return prettyPrintYear(c.Tabwriter, year, c.Verbose)
+	return prettyPrintShows(c.Tabwriter, shows, c.Verbose)
 }
 
-func (c *Client) getAndPrintShows(ctx context.Context) error {
-	shows, err := c.getShows(ctx)
+func (c *Client) getAndPrintShows(ctx context.Context, url string) error {
+	shows, err := c.getShows(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't get shows data: %w", err)
 	}
-	_ = shows
-	return nil
-	// if c.PrintJSON {
-	// 	return printJSONShows(c.Output, shows)
-	// }
-	// return prettyPrintShows(c.Tabwriter, shows)
+	if c.PrintJSON {
+		return printJSONShows(c.Output, shows)
+	}
+	return prettyPrintShows(c.Tabwriter, shows, c.Verbose)
 }
 
-func (c *Client) getShows(ctx context.Context) (YearsOutput, error) {
-	var resp YearsResponse
-	if err := c.Get(ctx, "shows", &resp); err != nil {
-		return YearsOutput{}, fmt.Errorf("unable to get shows list: %w", err)
+func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) {
+	var resp ShowsResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return ShowsOutput{}, fmt.Errorf("unable to get shows list: %w", err)
 	}
 
-	o := YearsOutput{
-		Years: resp.Data,
+	o := ShowsOutput{
+		Shows: resp.Data,
 	}
 	return o, nil
 }

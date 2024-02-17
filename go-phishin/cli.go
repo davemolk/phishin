@@ -95,14 +95,10 @@ func printJSONYears(w io.Writer, years YearsOutput) error {
 }
 
 type YearResponse struct {
-    Data         []ConcertInfo `json:"data"`
+    Data         []Show `json:"data"`
 }
 
-type YearOutput struct {
-    ConcertInfo         []ConcertInfo `json:"year"`
-}
-
-type ConcertInfo struct {
+type Show struct {
     ID         int    `json:"id"`
     Date       string `json:"date"`
     Duration   int    `json:"duration"`
@@ -115,6 +111,8 @@ type ConcertInfo struct {
     VenueName  string `json:"venue_name"`
     TaperNotes string `json:"taper_notes"`
     LikesCount int    `json:"likes_count"`
+    VenueID int `json:"venue_id"`
+    Location string `json:"location"`
     Tracks     []Track `json:"tracks"`
     UpdatedAt time.Time `json:"updated_at"`
 }
@@ -152,31 +150,31 @@ type Tag struct {
     EndsAtSecond   int `json:"ends_at_second"`
 }
 
-func printJSONYear(w io.Writer, years YearOutput) error {
-    b, err := json.MarshalIndent(&years, "", "  ")
-    if err != nil {
-        return err
-    }
-    fmt.Fprintln(w, string(b))
-    return nil
-}
+// func printJSONYear(w io.Writer, years YearOutput) error {
+//     b, err := json.MarshalIndent(&years, "", "  ")
+//     if err != nil {
+//         return err
+//     }
+//     fmt.Fprintln(w, string(b))
+//     return nil
+// }
 
-func prettyPrintYear(tw *tabwriter.Writer, year YearOutput, verbose bool) error {
-    if verbose {
-        fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
-        for _, y := range year.ConcertInfo {
-            s := soundTreatment(y.Sbd)
-            r := soundTreatment(y.Remastered)
-            fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", y.Date, y.VenueName, y.Venue.Location, convertMillisecondToConcertDuration(int64(y.Duration)), s, r)
-        }
-        return tw.Flush()
-    }
-    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
-    for _, y := range year.ConcertInfo {
-        fmt.Fprintf(tw, "%s\t%s\t%s\n", y.Date, y.VenueName, y.Venue.Location)
-    }
-    return tw.Flush()
-}
+// func prettyPrintYear(tw *tabwriter.Writer, year YearOutput, verbose bool) error {
+//     if verbose {
+//         fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
+//         for _, y := range year.Shows {
+//             s := soundTreatment(y.Sbd)
+//             r := soundTreatment(y.Remastered)
+//             fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", y.Date, y.VenueName, y.Venue.Location, convertMillisecondToConcertDuration(int64(y.Duration)), s, r)
+//         }
+//         return tw.Flush()
+//     }
+//     fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
+//     for _, y := range year.Shows {
+//         fmt.Fprintf(tw, "%s\t%s\t%s\n", y.Date, y.VenueName, y.Venue.Location)
+//     }
+//     return tw.Flush()
+// }
 
 type soundTreatment bool
 
@@ -281,30 +279,59 @@ type Venue struct {
 }
 
 type ShowsResponse struct {
-	Data         []ConcertInfo `json:"data"`
+	Data         []Show `json:"data"`
 }
 
 type ShowResponse struct {
-    
+    Data         Show `json:"data"`
 }
 
+type ShowsOutput struct {
+    Shows []Show `json:"shows"`
+}
+
+func printJSONShows(w io.Writer, shows ShowsOutput) error {
+    b, err := json.MarshalIndent(&shows, "", "  ")
+    if err != nil {
+        return err
+    }
+    fmt.Fprintln(w, string(b))
+    return nil
+}
+
+func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) error {
+    if verbose {
+        fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
+        for _, s := range shows.Shows {
+            sbd := soundTreatment(s.Sbd)
+            r := soundTreatment(s.Remastered)
+            fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", s.Date, s.VenueName, s.Venue.Location, convertMillisecondToConcertDuration(int64(s.Duration)), sbd, r)
+        }
+        return tw.Flush()
+    }
+    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
+    for _, s := range shows.Shows {
+        fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Date, s.VenueName, s.Venue.Location)
+    }
+    return tw.Flush()
+}
+
+
 type ShowOnDateResponse struct {
-    Data ConcertInfo `json:"data"`
+    Data Show `json:"data"`
 }
 
 type ShowsOnDayOfYear struct {
-	Data []ConcertInfo `json:"data"`
+	Data []Show `json:"data"`
 }
 
 type RandomShowResponse struct {
-    Data ConcertInfo `json:"data"`
+    Data Show `json:"data"`
 }
 
 type TracksResponse struct {
     Data         []Track `json:"data"`
 }
-
-
 
 type TagListItem struct {
     ID          int       `json:"id"`
@@ -315,15 +342,43 @@ type TagListItem struct {
     Priority    int       `json:"priority"`
     Description string    `json:"description"`
     UpdatedAt   time.Time `json:"updated_at"`
+    ShowIds     []int `json:"show_ids"`
+    TrackIds    []int         `json:"track_ids"`
 }
 
 type TagsResponse struct{
     Data         []TagListItem `json:"data"`
 }
 
+type TagResponse struct {
+    Data  TagListItem `json:"data"`
+}
 
+// wasn't able to get results for other fields
+type SearchResponse struct {
+    Data         struct {
+        ExactShow  Show  `json:"exact_show"`
+        OtherShows []Show `json:"other_shows"`
+        ShowTags   []interface{} `json:"show_tags"`
+        Songs      []Song `json:"songs"`
+        Tags      []TagListItem `json:"tags"`
+        Tours     []interface{} `json:"tours"`
+        TrackTags []TrackTag `json:"track_tags"`
+        Tracks []interface{} `json:"tracks"`
+        Venues []Venue `json:"venues"`
+    } `json:"data"`
+}
 
-
+type TrackTag struct {
+    ID             int         `json:"id"`
+    TrackID        int         `json:"track_id"`
+    TagID          int         `json:"tag_id"`
+    CreatedAt      time.Time   `json:"created_at"`
+    Notes          string      `json:"notes"`
+    StartsAtSecond int         `json:"starts_at_second"`
+    EndsAtSecond   int `json:"ends_at_second"`
+    Transcript     string      `json:"transcript"`
+}
 
 // type Venue struct {
 //     ID         int           `json:"id"`

@@ -75,7 +75,8 @@ func TestGetEras(t *testing.T) {
 		Four: []string{"2021","2022","2023"},
 	}
 	ctx := context.Background()
-	got, err := c.getEras(ctx)
+	url := c.FormatURL("eras")
+	got, err := c.getEras(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +103,8 @@ func TestGetAndPrintErasText(t *testing.T) {
 4.0: 2021, 2022, 2023
 `
 	ctx := context.Background()
-	err := c.getAndPrintEras(ctx)
+	url := c.FormatURL("eras")
+	err := c.getAndPrintEras(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +141,8 @@ func TestGetAndPrintErasJSON(t *testing.T) {
 }
 `
 	ctx := context.Background()
-	err := c.getAndPrintEras(ctx)
+	url := c.FormatURL("eras")
+	err := c.getAndPrintEras(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +168,8 @@ func TestGetEra(t *testing.T) {
 		Years: []string{"2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020"},
 	}
 	ctx := context.Background()
-	got, err := c.getEra(ctx)
+	url := c.FormatURL("eras")
+	got, err := c.getEra(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +195,8 @@ func TestGetAndPrintEraText(t *testing.T) {
 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
 `
 	ctx := context.Background()
-	err := c.getAndPrintEra(ctx)
+	url := c.FormatURL("eras")
+	err := c.getAndPrintEra(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +239,8 @@ func TestGetAndPrintEraJSON(t *testing.T) {
 }
 `
 	ctx := context.Background()
-	err := c.getAndPrintEra(ctx)
+	url := c.FormatURL("eras")
+	err := c.getAndPrintEra(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +278,8 @@ func TestGetYears(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	got, err := c.getYears(ctx)
+	url := c.FormatURL("years")
+	got, err := c.getYears(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +306,8 @@ func TestGetAndPrintYearsText(t *testing.T) {
 1989       64
 `
 	ctx := context.Background()	
-	err := c.getAndPrintYears(ctx)
+	url := c.FormatURL("years")
+	err := c.getAndPrintYears(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,8 +328,8 @@ func TestGetYear(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	// simplified version so we can spot-check a few values
-	want := YearOutput{
-		ConcertInfo: []ConcertInfo{
+	want := ShowsOutput{
+		Shows: []Show{
 			{
 				Date: "1994-04-04",
 				Sbd: true,
@@ -349,19 +357,20 @@ func TestGetYear(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	got, err := c.getYear(ctx)
+	url := c.FormatURL("years")
+	got, err := c.getYear(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.ConcertInfo) != len(want.ConcertInfo) {
-		t.Errorf("got %d ConcertInfo want %d ConcertInfo", len(got.ConcertInfo), len(want.ConcertInfo))
+	if len(got.Shows) != len(want.Shows) {
+		t.Errorf("got %d shows want %d shows", len(got.Shows), len(want.Shows))
 	}	
-	for i := range got.ConcertInfo {
-		if got.ConcertInfo[i].Sbd != want.ConcertInfo[i].Sbd {
-			t.Errorf("got %v want %v", got.ConcertInfo[i].Sbd, want.ConcertInfo[i].Sbd)
+	for i := range got.Shows {
+		if got.Shows[i].Sbd != want.Shows[i].Sbd {
+			t.Errorf("got %v want %v", got.Shows[i].Sbd, want.Shows[i].Sbd)
 		}
-		if got.ConcertInfo[i].Venue.Location != want.ConcertInfo[i].Venue.Location {
-			t.Errorf("got %q want %q", got.ConcertInfo[i].Venue.Location, want.ConcertInfo[i].Venue.Location)
+		if got.Shows[i].Venue.Location != want.Shows[i].Venue.Location {
+			t.Errorf("got %q want %q", got.Shows[i].Venue.Location, want.Shows[i].Venue.Location)
 		}
 	}
 }
@@ -385,7 +394,8 @@ func TestGetAndPrintYearText(t *testing.T) {
 1994-04-06  Concert Hall       Toronto, Ontario, Canada
 `
 		ctx := context.Background()
-		err := c.getAndPrintYear(ctx)
+		url := c.FormatURL("years")
+		err := c.getAndPrintYear(ctx, url)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -407,7 +417,99 @@ func TestGetAndPrintYearText(t *testing.T) {
 1994-04-06  Concert Hall       Toronto, Ontario, Canada  2h 19m                  
 `
 		ctx := context.Background()
-		err := c.getAndPrintYear(ctx)
+		url := c.FormatURL("years")
+		err := c.getAndPrintYear(ctx, url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := buf.String()
+		if got != want {
+			t.Errorf("got \n%s want \n%s", got, want)
+		}
+	})
+}
+
+func TestGetShows(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/shows.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := ShowsOutput{
+		Shows: []Show{
+			{
+				Date: "1990-04-05",
+				Sbd: true,
+				VenueName: "J.J. McCabe's",
+				Venue: Venue{
+					Location: "Boulder, CO",
+				},
+			},
+		},
+	}
+	ctx := context.Background()
+	url := c.FormatURL("shows")
+	got, err := c.getYear(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Shows) != len(want.Shows) {
+		t.Errorf("got %d shows want %d shows", len(got.Shows), len(want.Shows))
+	}	
+	for i := range got.Shows {
+		if got.Shows[i].Sbd != want.Shows[i].Sbd {
+			t.Errorf("got %v want %v", got.Shows[i].Sbd, want.Shows[i].Sbd)
+		}
+		if got.Shows[i].Venue.Location != want.Shows[i].Venue.Location {
+			t.Errorf("got %q want %q", got.Shows[i].Venue.Location, want.Shows[i].Venue.Location)
+		}
+	}
+}
+
+func TestGetAndPrintShowsText(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/shows.json")
+		}))
+	defer ts.Close()
+	t.Run("non-verbose", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		c := NewClient("dummy", buf)
+		c.Output = buf
+		c.BaseURL = ts.URL
+		c.HTTPClient = ts.Client()
+		want := `Date:       Venue:         Location:
+1990-04-05  J.J. McCabe's  Boulder, CO
+`
+		ctx := context.Background()
+		url := c.FormatURL("shows")
+		err := c.getAndPrintYear(ctx, url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := buf.String()
+		if got != want {
+			t.Errorf("got \n%s want \n%s", got, want)
+		}
+	})
+	t.Run("verbose", func(t *testing.T) {
+		buf := &bytes.Buffer{}
+		c := NewClient("dummy", buf)
+		c.Output = buf
+		c.BaseURL = ts.URL
+		c.HTTPClient = ts.Client()
+		c.Verbose = true
+		want := `Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
+1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
+`
+		ctx := context.Background()
+		url := c.FormatURL("shows")
+		err := c.getAndPrintYear(ctx, url)
 		if err != nil {
 			t.Fatal(err)
 		}
