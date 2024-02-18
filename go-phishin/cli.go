@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+func printJSON(w io.Writer, data any) error {
+    b, err := json.MarshalIndent(&data, "", "  ")
+    if err != nil {
+        return err
+    }
+    fmt.Fprintln(w, string(b))
+    return nil
+}
+
 type ErasResponse struct {
     Data struct {
         One []string `json:"1.0"`
@@ -32,15 +41,6 @@ func prettyPrintEras(w io.Writer, e ErasOutput) error {
     return err
 }
 
-func printJSONEras(w io.Writer, e ErasOutput) error {
-    b, err := json.MarshalIndent(&e, "", "  ")
-    if err != nil {
-        return err
-    }
-    fmt.Fprintln(w, string(b))
-    return nil
-}
-
 type EraResponse struct {
     Era []string `json:"data"`
 }
@@ -53,15 +53,6 @@ type EraOutput struct {
 func prettyPrintEra(w io.Writer, e EraOutput) error {
     _, err := fmt.Fprintf(w, "Era %s:\n%s\n", e.EraName, strings.Join(e.Years, ", "))
     return err
-}
-
-func printJSONEra(w io.Writer, e EraOutput) error {
-    b, err := json.MarshalIndent(&e, "", "  ")
-    if err != nil {
-        return err
-    }
-    fmt.Fprintln(w, string(b))
-    return nil
 }
 
 type Year struct {
@@ -83,15 +74,6 @@ func prettyPrintYears(tw *tabwriter.Writer, years YearsOutput) error {
         fmt.Fprintf(tw, "%s\t%d\n", y.Date, y.ShowCount)
     }
     return tw.Flush()
-}
-
-func printJSONYears(w io.Writer, years YearsOutput) error {
-    b, err := json.MarshalIndent(&years, "", "  ")
-    if err != nil {
-        return err
-    }
-    fmt.Fprintln(w, string(b))
-    return nil
 }
 
 type YearResponse struct {
@@ -222,16 +204,54 @@ type ToursResponse struct {
 	Data []Tour `json:"data"`
 }
 
+type ToursOutput struct {
+	Tours []Tour `json:"tours"`
+}
+
 type TourResponse struct {
     Data Tour `json:"data"`
+}
+
+type TourOutput struct {
+    Tour `json:"tour"`
 }
 
 type VenuesResponse struct {
 	Data         []Venue `json:"data"`
 }
 
+type VenuesOutput struct {
+	Venues         []Venue `json:"venues"`
+}
+
+func prettyPrintVenues(tw *tabwriter.Writer, venues VenuesOutput) error {
+    fmt.Fprintln(tw, "Venues:\tLocation:\tShow Count:")
+    for _, v := range venues.Venues {
+        fmt.Fprintf(tw, "%s\t%s\t%d\n", v.Name, v.Location, v.ShowsCount)
+    }
+    return tw.Flush()
+}
+
 type VenueResponse struct {
     Data         Venue `json:"data"`
+}
+
+type VenueOutput struct {
+    Venue `json:"venue"`
+}
+
+func prettyPrintVenue(tw *tabwriter.Writer, venue VenueOutput) error {
+    fmt.Fprintln(tw, "Venue:\tLocation:\tShow Count:")
+    fmt.Fprintf(tw, "%s\t%s\t%d\n", venue.Name, venue.Location, venue.ShowsCount)
+    fmt.Fprintln(tw, "\t")
+    if len(venue.ShowDates) == 0 {
+        return tw.Flush()
+    }
+    fmt.Fprintln(tw, "Show Dates")
+    for _, d := range venue.ShowDates {
+        fmt.Fprintf(tw, "%s\n", d)
+    }
+    return tw.Flush()
 }
 
 // used in venues list, details. subset used in years
@@ -268,15 +288,6 @@ type ShowOutput struct {
     Show `json:"show"`
 }
 
-func printJSONShows(w io.Writer, shows ShowsOutput) error {
-    b, err := json.MarshalIndent(&shows, "", "  ")
-    if err != nil {
-        return err
-    }
-    fmt.Fprintln(w, string(b))
-    return nil
-}
-
 func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) error {
     if verbose {
         fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
@@ -292,15 +303,6 @@ func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) err
         fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Date, s.VenueName, s.Venue.Location)
     }
     return tw.Flush()
-}
-
-func printJSONShow(w io.Writer, show ShowOutput) error {
-    b, err := json.MarshalIndent(&show, "", "  ")
-    if err != nil {
-        return err
-    }
-    fmt.Fprintln(w, string(b))
-    return nil
 }
 
 func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error {

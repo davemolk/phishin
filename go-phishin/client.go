@@ -66,6 +66,10 @@ func (c *Client) fromArgs(args []string) error {
 	shows.StringVar(&c.Query, "s", "", "search query")
 	showsVerbose := shows.Bool("v", false, "fill this out")
 	showsOutput := shows.String("o", "text", "print output as text/json")
+
+	venues := flag.NewFlagSet("venues", flag.ExitOnError)
+	venues.StringVar(&c.Query, "s", "", "search query")
+	venuesOutput := venues.String("o", "text", "print output as text/json")
     
 	path := args[0]
 	switch path {
@@ -87,6 +91,12 @@ func (c *Client) fromArgs(args []string) error {
 	case "songs":
 	case "tours":
 	case "venues":
+		if err := venues.Parse(args[1:]); err != nil {
+			return err
+		}
+		if err := c.validateParams(*venuesOutput, false, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "shows":
 		if err := shows.Parse(args[1:]); err != nil {
 			return err
@@ -209,7 +219,7 @@ func (c *Client) getAndPrintEras(ctx context.Context, url string) error {
 		return fmt.Errorf("couldn't get eras data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONEras(c.Output, eras)
+		return printJSON(c.Output, eras)
 	}
 	return prettyPrintEras(c.Output, eras)
 }
@@ -234,7 +244,7 @@ func (c *Client) getAndPrintEra(ctx context.Context, url string) error {
 		return fmt.Errorf("couldn't get era data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONEra(c.Output, era)
+		return printJSON(c.Output, era)
 	}
 	return prettyPrintEra(c.Output, era)
 }
@@ -257,7 +267,7 @@ func (c *Client) getAndPrintYears(ctx context.Context, url string) error {
 		return fmt.Errorf("couldn't get years data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONYears(c.Output, years)
+		return printJSON(c.Output, years)
 	}
 	return prettyPrintYears(c.Tabwriter, years)
 }
@@ -291,7 +301,7 @@ func (c *Client) getAndPrintYear(ctx context.Context, url string) error {
 		return fmt.Errorf("couldn't get year data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONShows(c.Output, shows)
+		return printJSON(c.Output, shows)
 	}
 	return prettyPrintShows(c.Tabwriter, shows, c.Verbose)
 }
@@ -302,7 +312,7 @@ func (c *Client) getAndPrintShows(ctx context.Context, url string) error {
 		return fmt.Errorf("couldn't get shows data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONShows(c.Output, shows)
+		return printJSON(c.Output, shows)
 	}
 	return prettyPrintShows(c.Tabwriter, shows, c.Verbose)
 }
@@ -325,7 +335,7 @@ func (c *Client) getAndPrintShow(ctx context.Context, url string) error {
 		return fmt.Errorf("couldn't get show data: %w", err)
 	}
 	if c.PrintJSON {
-		return printJSONShow(c.Output, show)
+		return printJSON(c.Output, show)
 	}
 	return prettyPrintShow(c.Tabwriter, show, c.Verbose)
 }
@@ -338,6 +348,103 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 
 	o := ShowOutput{
 		Show: resp.Data,
+	}
+	return o, nil
+}
+
+
+func (c *Client) getAndPrintTours(ctx context.Context, url string) error {
+	tours, err := c.getTours(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get tours data: %w", err)
+	}
+	_ = tours
+	return nil
+	// if c.PrintJSON {
+	// 	return printJSONTours(c.Output, tours)
+	// }
+	// return prettyPrintTours(c.Tabwriter, tours, c.Verbose)
+}
+
+func (c *Client) getTours(ctx context.Context, url string) (ToursOutput, error) {
+	var resp ToursResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return ToursOutput{}, fmt.Errorf("unable to get tours list: %w", err)
+	}
+
+	o := ToursOutput{
+		Tours: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintTour(ctx context.Context, url string) error {
+	tour, err := c.getTour(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get tour data: %w", err)
+	}
+	_ = tour
+	return nil
+	// if c.PrintJSON {
+	// 	return printJSONTour(c.Output, tour)
+	// }
+	// return prettyPrintTour(c.Tabwriter, tour, c.Verbose)
+}
+
+func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
+	var resp TourResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return TourOutput{}, fmt.Errorf("unable to get tour details: %w", err)
+	}
+
+	o := TourOutput{
+		Tour: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintVenues(ctx context.Context, url string) error {
+	venues, err := c.getVenues(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get venues data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, venues)
+	}
+	return prettyPrintVenues(c.Tabwriter, venues)
+}
+
+func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error) {
+	var resp VenuesResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return VenuesOutput{}, fmt.Errorf("unable to get tours list: %w", err)
+	}
+
+	o := VenuesOutput{
+		Venues: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintVenue(ctx context.Context, url string) error {
+	venue, err := c.getVenue(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get venue data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, venue)
+	}
+	return prettyPrintVenue(c.Tabwriter, venue)
+}
+
+func (c *Client) getVenue(ctx context.Context, url string) (VenueOutput, error) {
+	var resp VenueResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return VenueOutput{}, fmt.Errorf("unable to get tour details: %w", err)
+	}
+
+	o := VenueOutput{
+		Venue: resp.Data,
 	}
 	return o, nil
 }

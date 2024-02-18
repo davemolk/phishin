@@ -35,7 +35,7 @@ func Run() int {
 	path := os.Args[1]
 	switch path {
 	case "eras":
-		url := c.FormatURL("eras") 
+		url := c.FormatURL(path) 
 		if c.Query != "" {
 			if err := c.getAndPrintEra(ctx, url); err != nil {
 				fmt.Fprintln(os.Stderr, fmt.Errorf("era details failure: %w", err))
@@ -49,7 +49,7 @@ func Run() int {
 		}
 		return 0
 	case "years":
-		url := c.FormatURL("years") 
+		url := c.FormatURL(path) 
 		if c.Query != "" {
 			if err := c.getAndPrintYear(ctx, url); err != nil {
 				fmt.Fprintln(os.Stderr, fmt.Errorf("year details failure: %w", err))
@@ -63,22 +63,40 @@ func Run() int {
 		}
 		return 0
 	case "songs":
-		url := c.FormatURL("songs") 
+		url := c.FormatURL(path) 
 		if err := c.Get(ctx, url, nil); err != nil {
 			return 1
 		}
 	case "tours":
-		url := c.FormatURL("tours") 
-		if err := c.Get(ctx, url, nil); err != nil {
+		url := c.FormatURL(path) 
+		if c.Query != "" {
+			if err := c.getAndPrintTour(ctx, url); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Errorf("tour details failure: %w", err))
+				return 1
+			}
+			return 0
+		}
+		if err := c.getAndPrintTours(ctx, url); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("tours list failure: %w", err))
 			return 1
 		}
+		return 0
 	case "venues":
-		url := c.FormatURL("venues") 
-		if err := c.Get(ctx, url, nil); err != nil {
+		url := c.FormatURL(path) 
+		if c.Query != "" {
+			if err := c.getAndPrintVenue(ctx, url); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Errorf("venue details failure: %w", err))
+				return 1
+			}
+			return 0
+		}
+		if err := c.getAndPrintVenues(ctx, url); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("venues list failure: %w", err))
 			return 1
 		}
+		return 0
 	case "shows":
-		url := c.FormatURL("shows") 
+		url := c.FormatURL(path) 
 		if c.Query != "" {
 			if err := c.getAndPrintShow(ctx, url); err != nil {
 				fmt.Fprintln(os.Stderr, fmt.Errorf("show details failure: %w", err))
@@ -92,38 +110,38 @@ func Run() int {
 		}
 		return 0
 	case "show-on-date":
-		url := c.FormatURL("show-on-date") 
+		url := c.FormatURL(path) 
 		if err := c.getAndPrintShow(ctx, url); err != nil {
 			fmt.Fprintln(os.Stderr, fmt.Errorf("show details failure: %w", err))
 			return 1
 		}
 		return 0
 	case "shows-on-day-of-year":
-		url := c.FormatURL("shows-on-day-of-year") 
+		url := c.FormatURL(path) 
 		if err := c.Get(ctx, url, nil); err != nil {
 			return 1
 		}
 	case "random-show":
-		url := c.FormatURL("random-show")
+		url := c.FormatURL(path)
 		if err := c.getAndPrintShow(ctx, url); err != nil {
 			fmt.Fprintln(os.Stderr, fmt.Errorf("show details failure: %w", err))
 			return 1
 		}
 		return 0
 	case "tracks":
-		url := c.FormatURL("tracks") 
+		url := c.FormatURL(path) 
 		if err := c.Get(ctx, url, nil); err != nil {
 			return 1
 		}
 	case "search":
-		url := c.FormatURL("search") 
+		url := c.FormatURL(path) 
 		if err := c.Get(ctx, url, nil); err != nil {
 			return 1
 		}
 	// case "playlists":
 		
 	case "tags":
-		url := c.FormatURL("tags") 
+		url := c.FormatURL(path) 
 		if err := c.Get(ctx, url, nil); err != nil {
 			return 1
 		}
