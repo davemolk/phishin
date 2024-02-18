@@ -150,32 +150,6 @@ type Tag struct {
     EndsAtSecond   int `json:"ends_at_second"`
 }
 
-// func printJSONYear(w io.Writer, years YearOutput) error {
-//     b, err := json.MarshalIndent(&years, "", "  ")
-//     if err != nil {
-//         return err
-//     }
-//     fmt.Fprintln(w, string(b))
-//     return nil
-// }
-
-// func prettyPrintYear(tw *tabwriter.Writer, year YearOutput, verbose bool) error {
-//     if verbose {
-//         fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
-//         for _, y := range year.Shows {
-//             s := soundTreatment(y.Sbd)
-//             r := soundTreatment(y.Remastered)
-//             fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", y.Date, y.VenueName, y.Venue.Location, convertMillisecondToConcertDuration(int64(y.Duration)), s, r)
-//         }
-//         return tw.Flush()
-//     }
-//     fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
-//     for _, y := range year.Shows {
-//         fmt.Fprintf(tw, "%s\t%s\t%s\n", y.Date, y.VenueName, y.Venue.Location)
-//     }
-//     return tw.Flush()
-// }
-
 type soundTreatment bool
 
 func (s soundTreatment) String() string {
@@ -282,12 +256,16 @@ type ShowsResponse struct {
 	Data         []Show `json:"data"`
 }
 
+type ShowsOutput struct {
+    Shows []Show `json:"shows"`
+}
+
 type ShowResponse struct {
     Data         Show `json:"data"`
 }
 
-type ShowsOutput struct {
-    Shows []Show `json:"shows"`
+type ShowOutput struct {
+    Show `json:"show"`
 }
 
 func printJSONShows(w io.Writer, shows ShowsOutput) error {
@@ -312,6 +290,71 @@ func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) err
     fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
     for _, s := range shows.Shows {
         fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Date, s.VenueName, s.Venue.Location)
+    }
+    return tw.Flush()
+}
+
+func printJSONShow(w io.Writer, show ShowOutput) error {
+    b, err := json.MarshalIndent(&show, "", "  ")
+    if err != nil {
+        return err
+    }
+    fmt.Fprintln(w, string(b))
+    return nil
+}
+
+func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error {
+    if verbose {
+        fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
+        sbd := soundTreatment(show.Sbd)
+        r := soundTreatment(show.Remastered)
+        fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", show.Date, show.VenueName, show.Venue.Location, convertMillisecondToConcertDuration(int64(show.Duration)), sbd, r)
+        fmt.Fprintln(tw, "\t")
+        // should always have tracks but check
+        if len(show.Tracks) == 0 {
+            return tw.Flush()
+        }
+        fmt.Fprintf(tw, "%s\n", show.Tracks[0].SetName)
+        for i, t := range show.Tracks {
+            if i > 1 && t.SetName != show.Tracks[i-1].SetName {
+                fmt.Fprintln(tw, "\t")
+                fmt.Fprintf(tw, "%s\t\n", show.Tracks[i].SetName)
+            }
+            var tags []string
+            for _, t := range t.Tags {
+                if t.Notes != "" {
+                    // sometimes inserted mid-text
+                    notes := strings.ReplaceAll(t.Notes, "\n", "")
+                    notes = strings.ReplaceAll(notes, "\r", "")
+                    tags = append(tags, fmt.Sprintf("%s: %s", t.Name, notes))
+                } else {
+                    tags = append(tags, t.Name)
+                }
+            }
+            tagInfo := strings.Join(tags, ", ")
+            fmt.Fprintf(tw, "%s\t%s\t%s\n", t.Title, convertMillisecondToConcertDuration(int64(t.Duration)), tagInfo)
+        }
+        fmt.Fprintln(tw, "\t")
+        fmt.Fprintln(tw, "want to listen?",)
+        for _, t := range show.Tracks {
+            fmt.Fprintf(tw, "%s\t%s\n", t.Title, t.Mp3)
+        }
+        return tw.Flush()
+    }
+    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
+    fmt.Fprintf(tw, "%s\t%s\t%s\n", show.Date, show.VenueName, show.Venue.Location)
+    fmt.Fprintln(tw, "\t")
+    // should always have tracks but check
+    if len(show.Tracks) == 0 {
+        return tw.Flush()
+    }
+    fmt.Fprintf(tw, "%s\n", show.Tracks[0].SetName)
+    for i, t := range show.Tracks {
+        if i > 1 && t.SetName != show.Tracks[i-1].SetName {
+            fmt.Fprintln(tw, "\t")
+            fmt.Fprintf(tw, "%s\t\n", show.Tracks[i].SetName)
+        }
+        fmt.Fprintf(tw, "%s\t%s\t\n", t.Title, convertMillisecondToConcertDuration(int64(t.Duration)))
     }
     return tw.Flush()
 }
@@ -379,25 +422,3 @@ type TrackTag struct {
     EndsAtSecond   int `json:"ends_at_second"`
     Transcript     string      `json:"transcript"`
 }
-
-// type Venue struct {
-//     ID         int           `json:"id"`
-//     Slug       string        `json:"slug"`
-//     Name       string        `json:"name"`
-//     OtherNames []string `json:"other_names"`
-//     Latitude   float64       `json:"latitude"`
-//     Longitude  float64       `json:"longitude"`
-//     ShowsCount int           `json:"shows_count"`
-//     Location   string        `json:"location"`
-//     UpdatedAt  time.Time     `json:"updated_at"`
-// }
-
-
-// type ConcertTag struct {
-//     ID       int         `json:"id"`
-//     Name     string      `json:"name"`
-//     Priority int         `json:"priority"`
-//     Group    string      `json:"group"`
-//     Color    string      `json:"color"`
-//     Notes    string `json:"notes"`
-// }

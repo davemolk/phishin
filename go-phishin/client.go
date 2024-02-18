@@ -59,8 +59,13 @@ func (c *Client) fromArgs(args []string) error {
     yearsSortAttr := years.String("sortAttr", "", "sort results <attr>")
 	yearsPerPage := years.Int("pp", 20, "per page") // todo check
 	yearsPage := years.Int("p", 1, "page")
-	yearsVerbose := years.Bool("v", false, "print setlists (valid only when searching for a specific year)")
+	yearsVerbose := years.Bool("v", false, "fill this out")
     yearsOutput := years.String("o", "text", "print output as text/json")
+
+	shows := flag.NewFlagSet("shows", flag.ExitOnError)
+	shows.StringVar(&c.Query, "s", "", "search query")
+	showsVerbose := shows.Bool("v", false, "fill this out")
+	showsOutput := shows.String("o", "text", "print output as text/json")
     
 	path := args[0]
 	switch path {
@@ -83,11 +88,43 @@ func (c *Client) fromArgs(args []string) error {
 	case "tours":
 	case "venues":
 	case "shows":
+		if err := shows.Parse(args[1:]); err != nil {
+			return err
+		}
+		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "show-on-date":
+		if err := shows.Parse(args[1:]); err != nil {
+			return err
+		}
+		if c.Query == "" {
+			// todo put usage here
+			return errors.New("need a date")
+		}
+		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "shows-on-day-of-year":
+		if c.Query == "" {
+			// todo put usage here
+			return errors.New("need a day")
+		}
 	case "random-show":
+		if err := shows.Parse(args[1:]); err != nil {
+			return err
+		}
+		// doesn't take a parameter, so drop if user added one
+		c.Query = ""
+		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "tracks":
 	case "search":
+		if c.Query == "" {
+			// todo put usage here
+			return errors.New("need a search term")
+		}
 	// case "playlists":
 	case "tags":
 	default:
@@ -278,6 +315,29 @@ func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) 
 
 	o := ShowsOutput{
 		Shows: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintShow(ctx context.Context, url string) error {
+	show, err := c.getShow(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get show data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSONShow(c.Output, show)
+	}
+	return prettyPrintShow(c.Tabwriter, show, c.Verbose)
+}
+
+func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
+	var resp ShowResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return ShowOutput{}, fmt.Errorf("unable to get show details: %w", err)
+	}
+
+	o := ShowOutput{
+		Show: resp.Data,
 	}
 	return o, nil
 }
