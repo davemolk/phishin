@@ -75,6 +75,15 @@ func (c *Client) fromArgs(args []string) error {
 	tags.StringVar(&c.Query, "s", "", "search query")
 	tagsOutput := tags.String("o", "text", "print output as text/json")
     
+	tours := flag.NewFlagSet("tours", flag.ExitOnError)
+	tours.StringVar(&c.Query, "s", "", "search query")
+	toursOutput := tours.String("o", "text", "print output as text/json")
+    
+	songs := flag.NewFlagSet("songs", flag.ExitOnError)
+	songs.StringVar(&c.Query, "s", "", "search query")
+	songsOutput := songs.String("o", "text", "print output as text/json")
+    
+
 	path := args[0]
 	switch path {
 	case "eras":
@@ -93,7 +102,19 @@ func (c *Client) fromArgs(args []string) error {
         c.Parameters = append(c.Parameters, "include_show_counts=true")
         c.PrintJSON = *yearsOutput == "json"
 	case "songs":
+		if err := songs.Parse(args[1:]); err != nil {
+			return err
+		}
+		if err := c.validateParams(*songsOutput, false, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "tours":
+		if err := tours.Parse(args[1:]); err != nil {
+			return err
+		}
+		if err := c.validateParams(*toursOutput, false, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "venues":
 		if err := venues.Parse(args[1:]); err != nil {
 			return err
@@ -362,18 +383,15 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 	return o, nil
 }
 
-
 func (c *Client) getAndPrintTours(ctx context.Context, url string) error {
 	tours, err := c.getTours(ctx, url)
 	if err != nil {
 		return fmt.Errorf("couldn't get tours data: %w", err)
 	}
-	_ = tours
-	return nil
-	// if c.PrintJSON {
-	// 	return printJSONTours(c.Output, tours)
-	// }
-	// return prettyPrintTours(c.Tabwriter, tours, c.Verbose)
+	if c.PrintJSON {
+		return printJSON(c.Output, tours)
+	}
+	return prettyPrintTours(c.Tabwriter, tours)
 }
 
 func (c *Client) getTours(ctx context.Context, url string) (ToursOutput, error) {
@@ -393,12 +411,10 @@ func (c *Client) getAndPrintTour(ctx context.Context, url string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't get tour data: %w", err)
 	}
-	_ = tour
-	return nil
-	// if c.PrintJSON {
-	// 	return printJSONTour(c.Output, tour)
-	// }
-	// return prettyPrintTour(c.Tabwriter, tour, c.Verbose)
+	if c.PrintJSON {
+		return printJSON(c.Output, tour)
+	}
+	return prettyPrintTour(c.Tabwriter, tour)
 }
 
 func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
@@ -498,6 +514,50 @@ func (c *Client) getTag(ctx context.Context, url string) (TagOutput, error) {
 		return TagOutput{}, fmt.Errorf("unable to get tour details: %w", err)
 	}
 	o := TagOutput{
+		resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintSongs(ctx context.Context, url string) error {
+	songs, err := c.getSongs(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get songs data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, songs)
+	}
+	return prettyPrintSongs(c.Tabwriter, songs)
+}
+
+func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) {
+	var resp SongsResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return SongsOutput{}, fmt.Errorf("unable to get songs list: %w", err)
+	}
+	o := SongsOutput{
+		Songs: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintSong(ctx context.Context, url string) error {
+	song, err := c.getSong(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get song data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, song)
+	}
+	return prettyPrintSong(c.Tabwriter, song)
+}
+
+func (c *Client) getSong(ctx context.Context, url string) (SongOutput, error) {
+	var resp SongResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return SongOutput{}, fmt.Errorf("unable to get song details: %w", err)
+	}
+	o := SongOutput{
 		resp.Data,
 	}
 	return o, nil

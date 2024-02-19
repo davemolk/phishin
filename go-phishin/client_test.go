@@ -1029,3 +1029,333 @@ Track IDs Where Jamcharts Appears
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
+
+func TestGetTours(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/tours.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := ToursOutput{
+		Tours: []Tour{
+			{
+				Name: "1983 Tour",
+				StartsOn: "1983-12-02",
+				EndsOn: "1983-12-02",
+				ShowsCount: 1,
+			},
+			{
+				Name: "1984 Tour",
+				StartsOn: "1984-11-03",
+				EndsOn: "1984-12-01",
+				ShowsCount: 2,
+			},
+		},
+	}
+	ctx := context.Background()
+	url := c.FormatURL("tours")
+	got, err := c.getTours(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, v := range got.Tours {
+		if v.Name != want.Tours[i].Name {
+			t.Errorf("got %s want %s", v.Name, want.Tours[i].Name)
+		}
+		if v.StartsOn != want.Tours[i].StartsOn {
+			t.Errorf("got %s want %s", v.StartsOn, want.Tours[i].StartsOn)
+		}
+		if v.EndsOn != want.Tours[i].EndsOn {
+			t.Errorf("got %s want %s", v.EndsOn, want.Tours[i].EndsOn)
+		}
+		if v.ShowsCount != want.Tours[i].ShowsCount {
+			t.Errorf("got %d want %d", v.ShowsCount, want.Tours[i].ShowsCount)
+		}
+	}
+}
+
+func TestGetAndPrintToursText(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/tours.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Name:      Starts On:  Ends On:    Show Count:
+1983 Tour  1983-12-02  1983-12-02  1
+1984 Tour  1984-11-03  1984-12-01  2
+`
+	ctx := context.Background()
+	url := c.FormatURL("tours")
+	err := c.getAndPrintTours(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+	
+}
+
+func TestGetTour(t *testing.T) {
+	t.Parallel()
+	query := "1985-tour"
+	path := "tours"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/tour.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	// grab a subset to spot-check values
+	want := Tour{
+		Name: "1985 Tour",
+		StartsOn: "1985-03-04",
+		EndsOn: "1985-11-23",
+		ShowsCount: 6,
+		Shows: []Show{
+			{
+				Date: "1985-03-04",
+			},
+		},
+	}
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	got, err := c.getTour(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != want.Name {
+		t.Errorf("got %s want %s", got.Name, want.Name)
+	}
+	if got.StartsOn != want.StartsOn {
+		t.Errorf("got %s want %s", got.StartsOn, want.StartsOn)
+	}
+	if got.EndsOn != want.EndsOn {
+		t.Errorf("got %s want %s", got.EndsOn, want.EndsOn)
+	}
+	if got.ShowsCount != want.ShowsCount {
+		t.Errorf("got %d want %d", got.ShowsCount, want.ShowsCount)
+	}
+	if len(got.Shows) != len(want.Shows) {
+		t.Errorf("got %d want %d",len(got.Shows), len(want.Shows))
+	}
+	// spot-check show data
+	if got.Shows[0].Date != want.Shows[0].Date {
+		t.Errorf("got %s want %s", got.Shows[0].Date, want.Shows[0].Date)
+	}
+}
+
+func TestGetAndPrintTourText(t *testing.T) {
+	t.Parallel()
+	query := "1985-tour"
+	path := "tours"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/tour.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Name:      Starts On:  Ends On:    Show Count:
+1985 Tour  1985-03-04  1985-11-23  6
+
+Date:       Venue:  Location:       Duration:  Soundboard:  Remastered:
+1985-03-04  Hunt's  Burlington, VT  40m 14s    yes          
+
+`
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	err := c.getAndPrintTour(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}
+
+func TestGetSongs(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/songs.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := SongsOutput{
+		Songs: []Song{
+			{
+				Title: "Billy Breathes",
+				Alias: "",
+				Original: true,
+				Artist: "",
+			},
+			{
+				Title: "Arc",
+				Alias: "",
+				Original: false,
+				Artist: "Arctic Monkeys",
+			},
+		},
+	}
+	ctx := context.Background()
+	url := c.FormatURL("songs")
+	got, err := c.getSongs(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, v := range got.Songs {
+		if v.Title != want.Songs[i].Title {
+			t.Errorf("got %s want %s", v.Title, want.Songs[i].Title)
+		}
+		if v.Alias != want.Songs[i].Alias {
+			t.Errorf("got %s want %s", v.Alias, want.Songs[i].Alias)
+		}
+		if v.Original != want.Songs[i].Original {
+			t.Errorf("got %v want %v", v.Original, want.Songs[i].Original)
+		}
+		if v.Artist != want.Songs[i].Artist {
+			t.Errorf("got %s want %s", v.Artist, want.Songs[i].Artist)
+		}
+	}
+}
+
+func TestGetAndPrintSongsText(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/songs.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Title:          Alias:  Original:  Artist:         TracksCount
+Billy Breathes          yes                        64
+Arc                                Arctic Monkeys  0
+`
+	ctx := context.Background()
+	url := c.FormatURL("songs")
+	err := c.getAndPrintSongs(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}
+
+func TestGetSong(t *testing.T) {
+	t.Parallel()
+	query := "david-bowie"
+	path := "songs"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/song.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	// grab a subset to spot-check values
+	want := Song{
+		Title: "David Bowie",
+		Alias: "",
+		Original: true,
+		Artist: "",
+		TracksCount: 447,
+	}
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	got, err := c.getSong(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != want.Title {
+		t.Errorf("got %s want %s", got.Title, want.Title)
+	}
+	if got.Alias != want.Alias {
+		t.Errorf("got %s want %s", got.Alias, want.Alias)
+	}
+	if got.Original != want.Original {
+		t.Errorf("got %v want %v", got.Original, want.Original)
+	}
+	if got.Artist != want.Artist {
+		t.Errorf("got %s want %s", got.Artist, want.Artist)
+	}
+	if got.TracksCount != want.TracksCount {
+		t.Errorf("got %d want %d", got.TracksCount, want.TracksCount)
+	}
+}
+
+func TestGetAndPrintSongText(t *testing.T) {
+	t.Parallel()
+	query := "david-bowie"
+	path := "songs"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/song.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Title:       Alias:  Original:  Artist:  TracksCount
+David Bowie          true                447
+
+Date:       Venue:                           Location:             Mp3
+1986-10-31  Sculpture Room, Goddard College  Plainfield, VT        https://phish.in/audio/000/000/115/115.mp3
+1986-12-06  The Ranch                        South Burlington, VT  https://phish.in/audio/000/000/147/147.mp3
+1986-12-06  The Ranch                        South Burlington, VT  https://phish.in/audio/000/000/145/145.mp3
+`
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	err := c.getAndPrintSong(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}

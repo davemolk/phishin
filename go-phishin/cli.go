@@ -170,25 +170,40 @@ type SongsResponse struct {
 	Data         []Song `json:"data"`
 }
 
+type SongsOutput struct {
+    Songs []Song `json:"songs"`
+}
+
 type SongResponse struct {
     Data         Song `json:"data"`
 }
 
-// type ConcertInfoBasic struct {
-//     ID         int       `json:"id"`
-//     Date       string    `json:"date"`
-//     Duration   int       `json:"duration"`
-//     Incomplete bool      `json:"incomplete"`
-//     Sbd        bool      `json:"sbd"`
-//     Remastered bool      `json:"remastered"`
-//     TourID     int       `json:"tour_id"`
-//     VenueID    int       `json:"venue_id"`
-//     LikesCount int       `json:"likes_count"`
-//     TaperNotes string    `json:"taper_notes"`
-//     UpdatedAt  time.Time `json:"updated_at"`
-//     VenueName  string    `json:"venue_name"`
-//     Location   string    `json:"location"`
-// }
+type SongOutput struct {
+    Song `json:"song"`
+}
+
+func prettyPrintSongs(tw *tabwriter.Writer, songs SongsOutput) error {
+    fmt.Fprintln(tw, "Title:\tAlias:\tOriginal:\tArtist:\tTracksCount")
+    for _, s := range songs.Songs {
+        // reuse bool stringer
+        orig := soundTreatment(s.Original)
+        fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%d\n", s.Title, s.Alias, orig, s.Artist, s.TracksCount)
+    }
+    return tw.Flush()
+}
+
+func prettyPrintSong(tw *tabwriter.Writer, song SongOutput) error {
+    fmt.Fprintln(tw, "Title:\tAlias:\tOriginal:\tArtist:\tTracksCount")
+    fmt.Fprintf(tw, "%s\t%s\t%v\t%s\t%d\n", song.Title, song.Alias, song.Original, song.Artist, song.TracksCount)
+    fmt.Fprintln(tw)
+    fmt.Println(tw, "Tracks")
+    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tMp3")
+    for _, t := range song.Tracks {
+        fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", t.ShowDate, t.VenueName, t.VenueLocation, t.Mp3)
+    }
+    return tw.Flush()
+}
+
 
 type Tour struct {
     ID         int    `json:"id"`
@@ -215,6 +230,28 @@ type TourResponse struct {
 
 type TourOutput struct {
     Tour `json:"tour"`
+}
+
+func prettyPrintTours(tw *tabwriter.Writer, tours ToursOutput) error {
+    fmt.Fprintln(tw, "Name:\tStarts On:\tEnds On:\tShow Count:")
+    for _, t := range tours.Tours {
+        fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", t.Name, t.StartsOn, t.EndsOn, t.ShowsCount)
+    }
+    return tw.Flush()
+}
+
+func prettyPrintTour(tw *tabwriter.Writer, tour TourOutput) error {
+    fmt.Fprintln(tw, "Name:\tStarts On:\tEnds On:\tShow Count:")
+    fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", tour.Name, tour.StartsOn, tour.EndsOn, tour.ShowsCount)
+    fmt.Fprintln(tw)
+    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
+    for _, show := range tour.Shows {
+        sbd := soundTreatment(show.Sbd)
+        r := soundTreatment(show.Remastered)
+        fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", show.Date, show.VenueName, show.Location, convertMillisecondToConcertDuration(int64(show.Duration)), sbd, r)
+        fmt.Fprintln(tw)
+    }
+    return tw.Flush()
 }
 
 type VenuesResponse struct {

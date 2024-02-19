@@ -64,9 +64,18 @@ func Run() int {
 		return 0
 	case "songs":
 		url := c.FormatURL(path) 
-		if err := c.Get(ctx, url, nil); err != nil {
+		if c.Query != "" {
+			if err := c.getAndPrintSong(ctx, url); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Errorf("song details failure: %w", err))
+				return 1
+			}
+			return 0
+		}
+		if err := c.getAndPrintSongs(ctx, url); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("songs list failure: %w", err))
 			return 1
 		}
+		return 0
 	case "tours":
 		url := c.FormatURL(path) 
 		if c.Query != "" {
