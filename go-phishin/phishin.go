@@ -141,10 +141,19 @@ func Run() int {
 	// case "playlists":
 		
 	case "tags":
-		url := c.FormatURL(path) 
-		if err := c.Get(ctx, url, nil); err != nil {
+		url := c.FormatURL(path)
+		if c.Query != "" {
+			if err := c.getAndPrintTag(ctx, url); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Errorf("tag details failure: %w", err))
+				return 1
+			}
+			return 0
+		}
+		if err := c.getAndPrintTags(ctx, url); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("tags list failure: %w", err))
 			return 1
 		}
+		return 0
 	}
 
 	return 0

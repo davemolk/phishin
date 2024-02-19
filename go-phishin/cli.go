@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -156,9 +157,9 @@ type Song struct {
     ID          int       `json:"id"`
     Slug        string    `json:"slug"`
     Title       string    `json:"title"`
-    Alias       any       `json:"alias"`
+    Alias       string       `json:"alias"`
     Original    bool      `json:"original"`
-    Artist      any       `json:"artist"`
+    Artist      string       `json:"artist"`
     Lyrics      string    `json:"lyrics"`
     TracksCount int       `json:"tracks_count"`
     UpdatedAt   time.Time `json:"updated_at"`
@@ -173,21 +174,21 @@ type SongResponse struct {
     Data         Song `json:"data"`
 }
 
-type ConcertInfoBasic struct {
-    ID         int       `json:"id"`
-    Date       string    `json:"date"`
-    Duration   int       `json:"duration"`
-    Incomplete bool      `json:"incomplete"`
-    Sbd        bool      `json:"sbd"`
-    Remastered bool      `json:"remastered"`
-    TourID     int       `json:"tour_id"`
-    VenueID    int       `json:"venue_id"`
-    LikesCount int       `json:"likes_count"`
-    TaperNotes string    `json:"taper_notes"`
-    UpdatedAt  time.Time `json:"updated_at"`
-    VenueName  string    `json:"venue_name"`
-    Location   string    `json:"location"`
-}
+// type ConcertInfoBasic struct {
+//     ID         int       `json:"id"`
+//     Date       string    `json:"date"`
+//     Duration   int       `json:"duration"`
+//     Incomplete bool      `json:"incomplete"`
+//     Sbd        bool      `json:"sbd"`
+//     Remastered bool      `json:"remastered"`
+//     TourID     int       `json:"tour_id"`
+//     VenueID    int       `json:"venue_id"`
+//     LikesCount int       `json:"likes_count"`
+//     TaperNotes string    `json:"taper_notes"`
+//     UpdatedAt  time.Time `json:"updated_at"`
+//     VenueName  string    `json:"venue_name"`
+//     Location   string    `json:"location"`
+// }
 
 type Tour struct {
     ID         int    `json:"id"`
@@ -196,7 +197,7 @@ type Tour struct {
     Slug       string `json:"slug"`
     StartsOn   string `json:"starts_on"`
     EndsOn     string `json:"ends_on"`
-    Shows      []ConcertInfoBasic `json:"shows"`
+    Shows      []Show `json:"shows"`
     UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -395,8 +396,45 @@ type TagsResponse struct{
     Data         []TagListItem `json:"data"`
 }
 
+type TagsOutput struct {
+    Tags []TagListItem `json:"tags"`
+}
+
 type TagResponse struct {
     Data  TagListItem `json:"data"`
+}
+
+type TagOutput struct {
+    TagListItem `json:"tag"`
+}
+
+func prettyPrintTags(tw *tabwriter.Writer, tags TagsOutput) error {
+    fmt.Fprintln(tw, "Name:\tDescription:\tGroup:")
+    for _, t := range tags.Tags {
+        fmt.Fprintf(tw, "%s\t%s\t%s\n", t.Name, t.Description, t.Group)
+    }
+    return tw.Flush()
+}
+
+func prettyPrintTag(tw *tabwriter.Writer, tag TagOutput) error {
+    fmt.Fprintln(tw, "Name:\tDescription:\tGroup:")
+    fmt.Fprintf(tw, "%s\t%s\t%s\n", tag.Name, tag.Description, tag.Group)
+    fmt.Fprintln(tw)
+    showIDs := make([]string, 0, len(tag.ShowIds))
+    for _, i := range tag.ShowIds {
+        showIDs = append(showIDs, strconv.Itoa(i))
+    }
+    trackIDs := make([]string, 0, len(tag.TrackIds))
+    for _, i := range tag.TrackIds {
+        trackIDs = append(trackIDs, strconv.Itoa(i))
+    }
+    fmt.Fprintf(tw, "Show IDs Where %s Appears\n", tag.Name)
+    fmt.Fprintf(tw, "%s\n", strings.Join(showIDs, ", "))
+    fmt.Fprintln(tw)
+    fmt.Fprintf(tw, "Track IDs Where %s Appears\n", tag.Name)
+    fmt.Fprintf(tw, "%s\n", strings.Join(trackIDs, ", "))
+
+    return tw.Flush()
 }
 
 // wasn't able to get results for other fields

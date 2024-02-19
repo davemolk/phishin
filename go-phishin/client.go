@@ -70,6 +70,10 @@ func (c *Client) fromArgs(args []string) error {
 	venues := flag.NewFlagSet("venues", flag.ExitOnError)
 	venues.StringVar(&c.Query, "s", "", "search query")
 	venuesOutput := venues.String("o", "text", "print output as text/json")
+
+	tags := flag.NewFlagSet("tags", flag.ExitOnError)
+	tags.StringVar(&c.Query, "s", "", "search query")
+	tagsOutput := tags.String("o", "text", "print output as text/json")
     
 	path := args[0]
 	switch path {
@@ -137,6 +141,12 @@ func (c *Client) fromArgs(args []string) error {
 		}
 	// case "playlists":
 	case "tags":
+		if err := tags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if err := c.validateParams(*tagsOutput, false, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("%s is not a recognized command", path)
 	}
@@ -445,6 +455,50 @@ func (c *Client) getVenue(ctx context.Context, url string) (VenueOutput, error) 
 
 	o := VenueOutput{
 		Venue: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintTags(ctx context.Context, url string) error {
+	tags, err := c.getTags(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get tags data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, tags)
+	}
+	return prettyPrintTags(c.Tabwriter, tags)
+}
+
+func (c *Client) getTags(ctx context.Context, url string) (TagsOutput, error) {
+	var resp TagsResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return TagsOutput{}, fmt.Errorf("unable to get tags list: %w", err)
+	}
+	o := TagsOutput{
+		Tags: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintTag(ctx context.Context, url string) error {
+	tag, err := c.getTag(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get tag data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, tag)
+	}
+	return prettyPrintTag(c.Tabwriter, tag)
+}
+
+func (c *Client) getTag(ctx context.Context, url string) (TagOutput, error) {
+	var resp TagResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return TagOutput{}, fmt.Errorf("unable to get tour details: %w", err)
+	}
+	o := TagOutput{
+		resp.Data,
 	}
 	return o, nil
 }

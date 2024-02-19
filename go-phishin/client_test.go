@@ -834,10 +834,6 @@ func TestGetVenue(t *testing.T) {
 	if got.ShowDates[0] != want.ShowDates[0] {
 		t.Errorf("got %s want %s", got.ShowDates[0], want.ShowDates[0])
 	}
-	err = printJSON(c.Output, got)
-	if err != nil {
-		t.Fatal()
-	}
 }
 
 func TestGetAndPrintVenueText(t *testing.T) {
@@ -867,6 +863,164 @@ Show Dates
 	c.Query = query
 	url := c.FormatURL(path)
 	err := c.getAndPrintVenue(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}
+
+func TestGetTags(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/tags.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := TagsOutput{
+		Tags: []TagListItem{
+			{
+				Name: "Costume",
+				Description: "Musical costume sequence",
+				Group: "Set Content",
+			},
+			{
+				Name: "Audience",
+				Description: "Contribution from audience during performance",
+				Group: "Song Content",
+			},
+		},
+	}
+	ctx := context.Background()
+	url := c.FormatURL("tags")
+	got, err := c.getTags(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, v := range got.Tags {
+		if v.Name != want.Tags[i].Name {
+			t.Errorf("got %s want %s", v.Name, want.Tags[i].Name)
+		}
+		if v.Description != want.Tags[i].Description {
+			t.Errorf("got %s want %s", v.Description, want.Tags[i].Description)
+		}
+		if v.Group != want.Tags[i].Group {
+			t.Errorf("got %s want %s", v.Group, want.Tags[i].Group)
+		}
+	}
+}
+
+func TestGetAndPrintTagsText(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/tags.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Name:     Description:                                   Group:
+Costume   Musical costume sequence                       Set Content
+Audience  Contribution from audience during performance  Song Content
+`
+	ctx := context.Background()
+	url := c.FormatURL("tags")
+	err := c.getAndPrintTags(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+	
+}
+
+func TestGetTag(t *testing.T) {
+	t.Parallel()
+	query := "jamcharts"
+	path := "tags"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/tag.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	// grab a subset to spot-check values
+	want := TagListItem{
+		Name: "Jamcharts",
+		Description: "Phish.net Jam Charts selections (phish.net/jamcharts)",
+		Group: "Curated Selections",
+		ShowIds: []int{3},
+		TrackIds: []int{3, 4},
+	}
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	got, err := c.getTag(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != want.Name {
+		t.Errorf("got %s want %s", got.Name, want.Name)
+	}
+	if got.Description != want.Description {
+		t.Errorf("got %s want %s", got.Description, want.Description)
+	}
+	if got.Group != want.Group {
+		t.Errorf("got %s want %s", got.Group, want.Group)
+	}
+	if len(got.ShowIds) != len(want.ShowIds) {
+		t.Errorf("got %d want %d",len(got.ShowIds), len(want.ShowIds))
+	}
+	if len(got.TrackIds) != len(want.TrackIds) {
+		t.Errorf("got %d want %d",len(got.TrackIds), len(want.TrackIds))
+	}
+}
+
+func TestGetAndPrintTagText(t *testing.T) {
+	t.Parallel()
+	query := "jamcharts"
+	path := "tags"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/tag.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Name:      Description:                                           Group:
+Jamcharts  Phish.net Jam Charts selections (phish.net/jamcharts)  Curated Selections
+
+Show IDs Where Jamcharts Appears
+3
+
+Track IDs Where Jamcharts Appears
+1, 2
+`
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	err := c.getAndPrintTag(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
