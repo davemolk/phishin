@@ -1359,3 +1359,168 @@ Date:       Venue:                           Location:             Mp3
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
+
+func TestGetTracks(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/tracks.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := TracksOutput{
+		Tracks: []Track{
+			{
+				Title: "Maze",
+				ShowDate: "1994-10-07",
+				VenueName: "Stabler Arena, Lehigh University",
+				VenueLocation: "Bethlehem, PA",
+				Mp3: "https://phish.in/audio/000/004/270/4270.mp3",
+			},
+			{
+				Title: "Stash",
+				ShowDate: "1993-04-09",
+				VenueName: "State Theatre",
+				VenueLocation: "Minneapolis, MN",
+				Mp3: "https://phish.in/audio/000/006/693/6693.mp3",
+			},
+		},
+	}
+	ctx := context.Background()
+	url := c.FormatURL("tracks")
+	got, err := c.getTracks(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, v := range got.Tracks {
+		if v.Title != want.Tracks[i].Title {
+			t.Errorf("got %s want %s", v.Title, want.Tracks[i].Title)
+		}
+		if v.ShowDate != want.Tracks[i].ShowDate {
+			t.Errorf("got %s want %s", v.ShowDate, want.Tracks[i].ShowDate)
+		}
+		if v.VenueLocation != want.Tracks[i].VenueLocation {
+			t.Errorf("got %s want %s", v.VenueLocation, want.Tracks[i].VenueLocation)
+		}
+		if v.VenueName != want.Tracks[i].VenueName {
+			t.Errorf("got %s want %s", v.VenueName, want.Tracks[i].VenueName)
+		}
+		if v.Mp3 != want.Tracks[i].Mp3 {
+			t.Errorf("got %s want %s", v.Mp3, want.Tracks[i].Mp3)
+		}
+	}
+}
+
+func TestGetAndPrintTracksText(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "../testdata/tracks.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Date:       Venue:                            Location:        Title:  Mp3
+1994-10-07  Stabler Arena, Lehigh University  Bethlehem, PA    Maze    https://phish.in/audio/000/004/270/4270.mp3
+1993-04-09  State Theatre                     Minneapolis, MN  Stash   https://phish.in/audio/000/006/693/6693.mp3
+`
+	ctx := context.Background()
+	url := c.FormatURL("tracks")
+	err := c.getAndPrintTracks(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}
+
+func TestGetTrack(t *testing.T) {
+	t.Parallel()
+	query := "stash"
+	path := "tracks"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/track.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	// grab a subset to spot-check values
+	want := Track{
+		Title: "Stash",
+		ShowDate: "1993-04-09",
+		VenueName: "State Theatre",
+		VenueLocation: "Minneapolis, MN",
+		Mp3: "https://phish.in/audio/000/006/693/6693.mp3",
+	}
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	got, err := c.getTrack(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != want.Title {
+		t.Errorf("got %s want %s", got.Title, want.Title)
+	}
+	if got.ShowDate != want.ShowDate {
+		t.Errorf("got %s want %s", got.ShowDate, want.ShowDate)
+	}
+	if got.VenueName != want.VenueName {
+		t.Errorf("got %s want %s", got.VenueName, want.VenueName)
+	}
+	if got.VenueLocation != want.VenueLocation {
+		t.Errorf("got %s want %s", got.VenueLocation, want.VenueLocation)
+	}
+	if got.Mp3 != want.Mp3 {
+		t.Errorf("got %s want %s", got.Mp3, want.Mp3)
+	}
+}
+
+func TestGetAndPrintTrackText(t *testing.T) {
+	t.Parallel()
+	query := "stash"
+	path := "tracks"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/track.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `Date:       Venue:         Location:        Title:  Duration  Set    Mp3
+1993-04-09  State Theatre  Minneapolis, MN  Stash   11m 15s   Set 1  https://phish.in/audio/000/006/693/6693.mp3
+
+Name:      Group:              Notes:                                                                   Transcript
+SBD        Audio                                                                                        
+Jamcharts  Curated Selections  Several minutes of growly, percussive, dissonant, and atypical jamming.  
+`
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	err := c.getAndPrintTrack(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}

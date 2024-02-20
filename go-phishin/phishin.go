@@ -126,10 +126,12 @@ func Run() int {
 		}
 		return 0
 	case "shows-on-day-of-year":
-		url := c.FormatURL(path) 
-		if err := c.Get(ctx, url, nil); err != nil {
+		url := c.FormatURL(path)
+		if err := c.getAndPrintShows(ctx, url); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("shows list failure: %w", err))
 			return 1
 		}
+		return 0
 	case "random-show":
 		url := c.FormatURL(path)
 		if err := c.getAndPrintShow(ctx, url); err != nil {
@@ -139,9 +141,18 @@ func Run() int {
 		return 0
 	case "tracks":
 		url := c.FormatURL(path) 
-		if err := c.Get(ctx, url, nil); err != nil {
+		if c.Query != "" {
+			if err := c.getAndPrintTrack(ctx, url); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Errorf("track details failure: %w", err))
+				return 1
+			}
+			return 0
+		}
+		if err := c.getAndPrintTracks(ctx, url); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("tracks list failure: %w", err))
 			return 1
 		}
+		return 0
 	case "search":
 		url := c.FormatURL(path) 
 		if err := c.Get(ctx, url, nil); err != nil {

@@ -82,7 +82,10 @@ func (c *Client) fromArgs(args []string) error {
 	songs := flag.NewFlagSet("songs", flag.ExitOnError)
 	songs.StringVar(&c.Query, "s", "", "search query")
 	songsOutput := songs.String("o", "text", "print output as text/json")
-    
+
+	tracks := flag.NewFlagSet("tracks", flag.ExitOnError)
+	tracks.StringVar(&c.Query, "s", "", "search query")
+	tracksOutput := tracks.String("o", "text", "print output as text/json")
 
 	path := args[0]
 	switch path {
@@ -141,9 +144,15 @@ func (c *Client) fromArgs(args []string) error {
 			return err
 		}
 	case "shows-on-day-of-year":
+		if err := shows.Parse(args[1:]); err != nil {
+			return err
+		}
 		if c.Query == "" {
 			// todo put usage here
 			return errors.New("need a day")
+		}
+		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+			return err
 		}
 	case "random-show":
 		if err := shows.Parse(args[1:]); err != nil {
@@ -155,6 +164,12 @@ func (c *Client) fromArgs(args []string) error {
 			return err
 		}
 	case "tracks":
+		if err := tracks.Parse(args[1:]); err != nil {
+			return err
+		}
+		if err := c.validateParams(*tracksOutput, false, "", "", "", 0, 0); err != nil {
+			return err
+		}
 	case "search":
 		if c.Query == "" {
 			// todo put usage here
@@ -217,6 +232,7 @@ func (c *Client) Get(ctx context.Context, url string, data any) error {
 	req.Header.Set("Accept", "application/json")
 	authToken := c.APIKey
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	// todo add repo as ua header
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("error making request: %w", err)
@@ -229,13 +245,6 @@ func (c *Client) Get(ctx context.Context, url string, data any) error {
 	if err != nil {
 		return fmt.Errorf("error reading response body: %w", err)
 	}
-
-	// todo remove
-	// fmt.Println(string(b))
-	// os.WriteFile("foo", b, 0644)
-	// os.Exit(0)
-
-
 	err = json.Unmarshal(b, data)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error decoding json response: %v\n", string(b))
@@ -559,6 +568,50 @@ func (c *Client) getSong(ctx context.Context, url string) (SongOutput, error) {
 	}
 	o := SongOutput{
 		resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintTracks(ctx context.Context, url string) error {
+	tracks, err := c.getTracks(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get tracks data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, tracks)
+	}
+	return prettyPrintTracks(c.Tabwriter, tracks)
+}
+
+func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error) {
+	var resp TracksResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return TracksOutput{}, fmt.Errorf("unable to get tracks list: %w", err)
+	}
+	o := TracksOutput{
+		Tracks: resp.Data,
+	}
+	return o, nil
+}
+
+func (c *Client) getAndPrintTrack(ctx context.Context, url string) error {
+	track, err := c.getTrack(ctx, url)
+	if err != nil {
+		return fmt.Errorf("couldn't get track data: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, track)
+	}
+	return prettyPrintTrack(c.Tabwriter, track)
+}
+
+func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) {
+	var resp TrackResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return TrackOutput{}, fmt.Errorf("unable to get track details: %w", err)
+	}
+	o := TrackOutput{
+		Track: resp.Data,
 	}
 	return o, nil
 }

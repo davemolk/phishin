@@ -204,7 +204,6 @@ func prettyPrintSong(tw *tabwriter.Writer, song SongOutput) error {
     return tw.Flush()
 }
 
-
 type Tour struct {
     ID         int    `json:"id"`
     Name       string `json:"name"`
@@ -414,6 +413,40 @@ type RandomShowResponse struct {
 
 type TracksResponse struct {
     Data         []Track `json:"data"`
+}
+
+type TracksOutput struct {
+    Tracks []Track `json:"tracks"`
+}
+
+type TrackResponse struct {
+    Data Track `json:"data"`
+}
+
+type TrackOutput struct {
+    Track `json:"track"`
+}
+
+func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {
+    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tTitle:\tMp3")
+    for _, t := range tracks.Tracks {
+        fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", t.ShowDate, t.VenueName, t.VenueLocation, t.Title, t.Mp3)
+    }
+    return tw.Flush()
+}
+
+func prettyPrintTrack(tw *tabwriter.Writer, track TrackOutput) error {
+    fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tTitle:\tDuration\tSet\tMp3")
+    fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", track.ShowDate, track.VenueName, track.VenueLocation, track.Title, convertMillisecondToConcertDuration(int64(track.Duration)), track.SetName, track.Mp3)
+    fmt.Fprintln(tw)
+    if len(track.Track.Tags) != 0 {
+        fmt.Println(tw, "Tags")
+        fmt.Fprintln(tw, "Name:\tGroup:\tNotes:\tTranscript")
+        for _, t := range track.Tags {
+            fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", t.Name, t.Group, t.Notes, t.Transcript)
+        }
+    }
+    return tw.Flush()
 }
 
 type TagListItem struct {
