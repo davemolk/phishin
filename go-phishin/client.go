@@ -76,24 +76,37 @@ func (c *Client) fromArgs(args []string) error {
 
 	shows := flag.NewFlagSet("shows", flag.ExitOnError)
 	shows.StringVar(&c.Query, "s", "", "search query")
-	// these work
 	showsSortDir := shows.String("sortDir", "", "sort results asc/desc") 
     showsSortAttr := shows.String("sortAttr", "", "sort results <attr>")
-	showsPerPage := shows.Int("pp", 20, "per page") // todo check
+	showsPerPage := shows.Int("pp", 20, "per page")
 	showsPage := shows.Int("p", 1, "page")
+	showsTag := shows.String("tag", "", "filter by <tag>")
 	showsVerbose := shows.Bool("v", false, "fill this out")
 	showsOutput := shows.String("o", "text", "print output as text/json")
 
 	venues := flag.NewFlagSet("venues", flag.ExitOnError)
 	venues.StringVar(&c.Query, "s", "", "search query")
+	venuesSortDir := venues.String("sortDir", "", "sort results asc/desc") 
+    venuesSortAttr := venues.String("sortAttr", "", "sort results <attr>")
+	venuesPerPage := venues.Int("pp", 20, "per page")
+	venuesPage := venues.Int("p", 1, "page")
 	venuesOutput := venues.String("o", "text", "print output as text/json")
     
 	songs := flag.NewFlagSet("songs", flag.ExitOnError)
 	songs.StringVar(&c.Query, "s", "", "search query")
+	songsSortDir := songs.String("sortDir", "", "sort results asc/desc") 
+    songsSortAttr := songs.String("sortAttr", "", "sort results <attr>")
+	songsPerPage := songs.Int("pp", 20, "per page")
+	songsPage := songs.Int("p", 1, "page")
 	songsOutput := songs.String("o", "text", "print output as text/json")
 
 	tracks := flag.NewFlagSet("tracks", flag.ExitOnError)
 	tracks.StringVar(&c.Query, "s", "", "search query")
+	tracksSortDir := tracks.String("sortDir", "", "sort results asc/desc") 
+    tracksSortAttr := tracks.String("sortAttr", "", "sort results <attr>")
+	tracksPerPage := tracks.Int("pp", 20, "per page")
+	tracksPage := tracks.Int("p", 1, "page")
+	tracksTag := tracks.String("tag", "", "filter by <tag>")
 	tracksOutput := tracks.String("o", "text", "print output as text/json")
 
 	path := args[0]
@@ -114,9 +127,11 @@ func (c *Client) fromArgs(args []string) error {
 		if err := songs.Parse(args[1:]); err != nil {
 			return err
 		}
-		if err := c.validateParams(*songsOutput, false, "", "", "", 0, 0); err != nil {
+		if err := c.validateOutput(*songsOutput, false); err != nil {
 			return err
 		}
+		c.parseSortParams(*songsSortDir, *songsSortAttr)
+		c.parsePageParams(*songsPerPage, *songsPage)
 	case "tours":
 		if err := tours.Parse(args[1:]); err != nil {
 			return err
@@ -126,16 +141,21 @@ func (c *Client) fromArgs(args []string) error {
 		if err := venues.Parse(args[1:]); err != nil {
 			return err
 		}
-		if err := c.validateParams(*venuesOutput, false, "", "", "", 0, 0); err != nil {
+		if err := c.validateOutput(*venuesOutput, false); err != nil {
 			return err
 		}
+		c.parseSortParams(*venuesSortDir, *venuesSortAttr)
+		c.parsePageParams(*venuesPerPage, *venuesPage)
 	case "shows":
 		if err := shows.Parse(args[1:]); err != nil {
 			return err
 		}
-		if err := c.validateParams(*showsOutput, *showsVerbose, *showsSortDir, *showsSortAttr, "", *showsPerPage, *showsPage); err != nil {
+		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
 			return err
 		}
+		c.parseSortParams(*showsSortDir, *showsSortAttr)
+		c.parsePageParams(*showsPerPage, *showsPage)
+		c.parseTag(*showsTag)
 	case "show-on-date":
 		if err := shows.Parse(args[1:]); err != nil {
 			return err
@@ -144,7 +164,7 @@ func (c *Client) fromArgs(args []string) error {
 			// todo put usage here
 			return errors.New("need a date")
 		}
-		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
 			return err
 		}
 	case "shows-on-day-of-year":
@@ -155,7 +175,7 @@ func (c *Client) fromArgs(args []string) error {
 			// todo put usage here
 			return errors.New("need a day")
 		}
-		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
 			return err
 		}
 	case "random-show":
@@ -164,16 +184,19 @@ func (c *Client) fromArgs(args []string) error {
 		}
 		// doesn't take a parameter, so drop if user added one
 		c.Query = ""
-		if err := c.validateParams(*showsOutput, *showsVerbose, "", "", "", 0, 0); err != nil {
+		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
 			return err
 		}
 	case "tracks":
 		if err := tracks.Parse(args[1:]); err != nil {
 			return err
 		}
-		if err := c.validateParams(*tracksOutput, false, "", "", "", 0, 0); err != nil {
+		if err := c.validateOutput(*tracksOutput, false); err != nil {
 			return err
 		}
+		c.parseSortParams(*tracksSortDir, *tracksSortAttr)
+		c.parsePageParams(*tracksPerPage, *tracksPage)
+		c.parseTag(*tracksTag)
 	case "search":
 		if c.Query == "" {
 			// todo put usage here
@@ -191,7 +214,7 @@ func (c *Client) fromArgs(args []string) error {
 	return nil
 }
 
-func (c *Client) validateParams(output string, verbose bool, sortDir, sortAttr, tag string, perPage, page int) error {
+func (c *Client) validateOutput(output string, verbose bool) error {
     // output
     if output != "text" && output != "json" {
         return errors.New("output must be text or json")
@@ -199,8 +222,11 @@ func (c *Client) validateParams(output string, verbose bool, sortDir, sortAttr, 
     c.PrintJSON = output == "json"
 	// verbose printing
 	c.Verbose = verbose
-    // sortDir
-    switch sortDir {
+    return nil
+}
+
+func (c *Client) parseSortParams(sortDir, sortAttr string) {
+	switch sortDir {
     case "asc":
         c.Parameters = append(c.Parameters, "sort_dir=asc")
     case "desc":
@@ -208,26 +234,29 @@ func (c *Client) validateParams(output string, verbose bool, sortDir, sortAttr, 
     default:
         // just ignore
     }
-    // sortAttr
     if sortAttr != "" {
         c.Parameters = append(c.Parameters, fmt.Sprintf("sort_attr=%s", sortAttr))
     }
-    if tag != "" {
-        c.Parameters = append(c.Parameters, fmt.Sprintf("tags=%s", tag))
-    }
-    // perPage
+}
+
+func (c *Client) parsePageParams(perPage, page int) {
     if perPage != 20 && perPage > 0 {
         c.Parameters = append(c.Parameters, fmt.Sprintf("per_page=%d", perPage))
     }
-    // page
     if page > 1 {
         c.Parameters = append(c.Parameters, fmt.Sprintf("page=%d", page))
     }
-    return nil
+}
+
+// todo match against possiblilities or just accept input?
+func (c *Client) parseTag(tag string) {
+	if tag != "" {
+        c.Parameters = append(c.Parameters, fmt.Sprintf("tags=%s", tag))
+    }
 }
 
 func (c *Client) Get(ctx context.Context, url string, data any) error {
-	// url = "https://phish.in/api/v1/years/1990?per_page=1&page=1"
+	// url = "https://phish.in/api/v1/tracks?per_page=3&page=4&sort_dir=asc"
 	// fmt.Println("url", url)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -366,7 +395,11 @@ func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowsOutput{}, fmt.Errorf("unable to get shows list: %w", err)
 	}
-	return convertToShowsOutput(resp.Data), nil
+	o := convertToShowsOutput(resp.Data)
+	o.TotalEntries = resp.TotalEntries
+	o.TotalPages = resp.TotalPages
+	o.CurrentPage = resp.Page
+	return o, nil
 }
 
 func (c *Client) getAndPrintShow(ctx context.Context, url string) error {
@@ -469,6 +502,9 @@ func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error
 		venues = append(venues, convertToVenueOutput(v))
 	}
 	return VenuesOutput{
+		TotalEntries: resp.TotalEntries,
+		TotalPages: resp.TotalPages,
+		CurrentPage: resp.Page,
 		Venues: venues,
 	}, nil
 }
@@ -571,6 +607,9 @@ func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) 
 		songs = append(songs, song)
 	}
 	o := SongsOutput{
+		TotalEntries: resp.TotalEntries,
+		TotalPages: resp.TotalPages,
+		CurrentPage: resp.Page,
 		Songs: songs,
 	}
 	return o, nil
@@ -611,7 +650,11 @@ func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return TracksOutput{}, fmt.Errorf("unable to get tracks list: %w", err)
 	}
-	return convertToTracksOutput(resp.Data), nil
+	o := convertToTracksOutput(resp.Data)
+	o.TotalEntries = resp.TotalEntries
+	o.TotalPages = resp.TotalPages
+	o.CurrentPage = resp.Page
+	return o, nil
 }
 
 func (c *Client) getAndPrintTrack(ctx context.Context, url string) error {

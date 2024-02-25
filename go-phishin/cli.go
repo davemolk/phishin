@@ -62,6 +62,9 @@ type Year struct {
 }
 
 type YearsResponse struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    Page int `json:"page"`
     Data []Year `json:"data"`
 }
 
@@ -126,15 +129,9 @@ type Track struct {
 }
 
 type Tag struct {
-    // ID             int         `json:"id"`
     Name           string      `json:"name"`
-    // Priority       int         `json:"priority"`
     Group          string      `json:"group"`
-    // Color          string      `json:"color"`
     Notes          string `json:"notes"`
-    // Transcript     string `json:"transcript"`
-    // StartsAtSecond int `json:"starts_at_second"`
-    // EndsAtSecond   int `json:"ends_at_second"`
 }
 
 type trueAsYes bool
@@ -171,14 +168,22 @@ type Song struct {
 }
 
 type SongsResponse struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    Page int `json:"page"`
 	Data         []Song `json:"data"`
 }
 
 type SongsOutput struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    CurrentPage int `json:"current_page"`
     Songs []SongOutput `json:"songs"`
 }
 
 func prettyPrintSongs(tw *tabwriter.Writer, songs SongsOutput) error {
+    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", songs.TotalEntries, songs.TotalPages, songs.CurrentPage)
+    fmt.Fprintln(tw)
     fmt.Fprintln(tw, "Title:\tPhish Original:\tOriginal Artist:\tTracksCount")
     for _, s := range songs.Songs {
         orig := trueAsYes(s.Original)
@@ -278,14 +283,22 @@ func prettyPrintTour(tw *tabwriter.Writer, tour TourOutput) error {
 }
 
 type VenuesResponse struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    Page int `json:"page"`
 	Data         []Venue `json:"data"`
 }
 
 type VenuesOutput struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    CurrentPage int `json:"current_page"`
 	Venues         []VenueOutput `json:"venues"`
 }
 
 func prettyPrintVenues(tw *tabwriter.Writer, venues VenuesOutput) error {
+    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", venues.TotalEntries, venues.TotalPages, venues.CurrentPage)
+    fmt.Fprintln(tw)
     fmt.Fprintln(tw, "Venue:\tLocation:\tShow Count:")
     for _, v := range venues.Venues {
         fmt.Fprintf(tw, "%s\t%s\t%d\n", v.Name, v.Location, v.ShowsCount)
@@ -345,10 +358,16 @@ type Venue struct {
 }
 
 type ShowsResponse struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    Page int `json:"page"`
 	Data         []Show `json:"data"`
 }
 
 type ShowsOutput struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    CurrentPage int `json:"current_page"`
     Shows []ShowOutput `json:"shows"`
 }
 
@@ -364,6 +383,10 @@ func convertToShowsOutput(data []Show) ShowsOutput {
 }
 
 func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) error {
+    if shows.TotalEntries != 0 {
+        fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
+        fmt.Fprintln(tw)
+    }
     if verbose {
         fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
         for _, s := range shows.Shows {
@@ -457,7 +480,7 @@ func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error 
             fmt.Fprintf(tw, "%s\t%s\t%s\n", t.Title, t.Duration, tagInfo)
         }
         fmt.Fprintln(tw)
-        fmt.Fprintln(tw, "want to listen?",)
+        fmt.Fprintln(tw, "Mp3:",)
         for _, t := range show.Tracks {
             fmt.Fprintf(tw, "%s\t%s\n", t.Title, t.Mp3)
         }
@@ -495,10 +518,16 @@ type RandomShowResponse struct {
 }
 
 type TracksResponse struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    Page int `json:"page"`
     Data         []Track `json:"data"`
 }
 
 type TracksOutput struct {
+    TotalEntries int `json:"total_entries"`
+    TotalPages int `json:"total_pages"`
+    CurrentPage int `json:"current_page"`
     Tracks []TrackOutput `json:"tracks"`
 }
 
@@ -513,6 +542,8 @@ func convertToTracksOutput(data []Track) TracksOutput {
 }
 
 func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {
+    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", tracks.TotalEntries, tracks.TotalPages, tracks.CurrentPage)
+    fmt.Fprintln(tw)
     fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tTitle:\tMp3")
     for _, t := range tracks.Tracks {
         fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.ShowDate, t.VenueName, t.VenueLocation, t.Title, t.Mp3)

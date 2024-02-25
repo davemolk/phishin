@@ -458,6 +458,9 @@ func TestGetShows(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := ShowsOutput{
+		TotalEntries: 1759,
+		TotalPages: 88,
+		CurrentPage: 1,
 		Shows: []ShowOutput{
 			{
 				ID: 696,
@@ -521,7 +524,7 @@ func TestGetShows(t *testing.T) {
 	}
 	ctx := context.Background()
 	url := c.FormatURL("shows")
-	got, err := c.getYear(ctx, url)
+	got, err := c.getShows(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,12 +546,14 @@ func TestGetAndPrintShowsText(t *testing.T) {
 		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Date:       Venue:         Location:    Duration:
+		want := `Total Entries: 1759  Total Pages: 88  Result Page:1
+
+Date:       Venue:         Location:    Duration:
 1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m
 `
 		ctx := context.Background()
 		url := c.FormatURL("shows")
-		err := c.getAndPrintYear(ctx, url)
+		err := c.getAndPrintShows(ctx, url)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -564,12 +569,14 @@ func TestGetAndPrintShowsText(t *testing.T) {
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
+		want := `Total Entries: 1759  Total Pages: 88  Result Page:1
+
+ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
 696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
 `
 		ctx := context.Background()
 		url := c.FormatURL("shows")
-		err := c.getAndPrintYear(ctx, url)
+		err := c.getAndPrintShows(ctx, url)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -784,7 +791,7 @@ Contact                  6m 21s   SBD
 Encore           
 Golgi Apparatus  4m 41s  SBD
 
-want to listen?
+Mp3:
 Possum                   https://phish.in/audio/000/014/073/14073.mp3
 Ya Mar                   https://phish.in/audio/000/014/074/14074.mp3
 David Bowie              https://phish.in/audio/000/014/075/14075.mp3
@@ -834,6 +841,9 @@ func TestGetVenues(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := VenuesOutput{
+		TotalEntries: 666,
+		TotalPages: 34,
+		CurrentPage: 1,
 		Venues: []VenueOutput{
 			{
 				Name: "The Base Lodge, Johnson State College",
@@ -872,7 +882,9 @@ func TestGetAndPrintVenuesText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Venue:                                 Location:     Show Count:
+	want := `Total Entries: 666  Total Pages: 34  Result Page:1
+
+Venue:                                 Location:     Show Count:
 The Base Lodge, Johnson State College  Johnson, VT   2
 The Academy                            New York, NY  1
 `
@@ -1291,6 +1303,9 @@ func TestGetSongs(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := SongsOutput{
+		TotalEntries: 942,
+		TotalPages: 48,
+		CurrentPage: 1,
 		Songs: []SongOutput{
 			{
 				ID: 84,
@@ -1331,7 +1346,9 @@ func TestGetAndPrintSongsText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Title:          Phish Original:  Original Artist:  TracksCount
+	want := `Total Entries: 942  Total Pages: 48  Result Page:1
+
+Title:          Phish Original:  Original Artist:  TracksCount
 Billy Breathes  yes                                64
 Arc                              Arctic Monkeys    0
 `
@@ -1452,6 +1469,9 @@ func TestGetTracks(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := TracksOutput{
+		TotalEntries: 35069,
+		TotalPages: 1754,
+		CurrentPage: 1,
 		Tracks: []TrackOutput{
 			{
 				ID: 4270,
@@ -1510,7 +1530,9 @@ func TestGetAndPrintTracksText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `ID:   Date:       Venue:                            Location:        Title:  Mp3
+	want := `Total Entries: 35069  Total Pages: 1754  Result Page:1
+
+ID:   Date:       Venue:                            Location:        Title:  Mp3
 4270  1994-10-07  Stabler Arena, Lehigh University  Bethlehem, PA    Maze    https://phish.in/audio/000/004/270/4270.mp3
 6693  1993-04-09  State Theatre                     Minneapolis, MN  Stash   https://phish.in/audio/000/006/693/6693.mp3
 `
