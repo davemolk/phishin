@@ -333,29 +333,47 @@ func TestGetYear(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := ShowsOutput{
-		Shows: []Show{
+		Shows: []ShowOutput{
 			{
+				ID: 135,
 				Date: "1994-04-04",
+				Duration: "2h 40m",
 				Sbd: true,
+				Remastered: false,
+				Tags: []Tag{
+					{
+						Name:"SBD", Group:"Audio",
+					},
+				},
 				VenueName: "The Flynn Theatre",
-				Venue: Venue{
+				Venue: VenueOutput{
+					Name: "The Flynn Theatre",
 					Location: "Burlington, VT",
+					ShowsCount: 4,
 				},
-			},
-			{
-				Date: "1994-04-05",
-				Sbd: false,
-				VenueName: "The Metropolis",
-				Venue: Venue{
-					Location: "Montréal, Québec, Canada",
-				},
-			},
-			{
-				Date: "1994-04-06",
-				Sbd: false,
-				VenueName: "Concert Hall",
-				Venue: Venue{
-					Location: "Toronto, Ontario, Canada",
+				Tracks: []TrackOutput{
+					{
+						ID: 2553,
+						ShowDate: "1994-04-04",
+						VenueName: "The Flynn Theatre",
+						VenueLocation: "Burlington, VT",
+						Title: "Divided Sky",
+						Duration: "13m 31s",
+						SetName: "Set 1",
+						Tags: []Tag{},
+						Mp3: "https://phish.in/audio/000/002/553/2553.mp3",
+					},
+					{
+						ID: 2554,
+						ShowDate: "1994-04-04",
+						VenueName: "The Flynn Theatre",
+						VenueLocation: "Burlington, VT",
+						Title: "Sample in a Jar",
+						Duration: "4m 59s",
+						SetName: "Set 1",
+						Tags: []Tag{},
+						Mp3: "https://phish.in/audio/000/002/554/2554.mp3",
+					},
 				},
 			},
 		},
@@ -367,16 +385,8 @@ func TestGetYear(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Shows) != len(want.Shows) {
-		t.Errorf("got %d shows want %d shows", len(got.Shows), len(want.Shows))
-	}	
-	for i := range got.Shows {
-		if got.Shows[i].Sbd != want.Shows[i].Sbd {
-			t.Errorf("got %v want %v", got.Shows[i].Sbd, want.Shows[i].Sbd)
-		}
-		if got.Shows[i].Venue.Location != want.Shows[i].Venue.Location {
-			t.Errorf("got %q want %q", got.Shows[i].Venue.Location, want.Shows[i].Venue.Location)
-		}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got \n%v want \n%v", got, want)
 	}
 }
 
@@ -398,10 +408,8 @@ func TestGetAndPrintYearText(t *testing.T) {
 		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Date:       Venue:             Location:
-1994-04-04  The Flynn Theatre  Burlington, VT
-1994-04-05  The Metropolis     Montréal, Québec, Canada
-1994-04-06  Concert Hall       Toronto, Ontario, Canada
+		want := `Date:       Venue:             Location:       Duration:
+1994-04-04  The Flynn Theatre  Burlington, VT  2h 40m
 `
 		ctx := context.Background()
 		c.Query = query
@@ -422,10 +430,8 @@ func TestGetAndPrintYearText(t *testing.T) {
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `Date:       Venue:             Location:                 Duration:  Soundboard:  Remastered:
-1994-04-04  The Flynn Theatre  Burlington, VT            2h 40m     yes          
-1994-04-05  The Metropolis     Montréal, Québec, Canada  2h 22m                  
-1994-04-06  Concert Hall       Toronto, Ontario, Canada  2h 19m                  
+		want := `ID:  Date:       Venue:             Location:       Duration:  Soundboard:  Remastered:
+135  1994-04-04  The Flynn Theatre  Burlington, VT  2h 40m     yes          
 `
 		ctx := context.Background()
 		c.Query = query
@@ -452,13 +458,63 @@ func TestGetShows(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := ShowsOutput{
-		Shows: []Show{
+		Shows: []ShowOutput{
 			{
+				ID: 696,
 				Date: "1990-04-05",
+				Duration: "2h 27m",
 				Sbd: true,
+				Remastered: false,
+				Tags: []Tag{
+					{
+						Name: "SBD",
+						Group: "Audio",
+					},
+				},
 				VenueName: "J.J. McCabe's",
-				Venue: Venue{
+				Venue: VenueOutput{
+					Name: "J.J. McCabe's",
 					Location: "Boulder, CO",
+					ShowsCount: 1,
+				},
+				Tracks: []TrackOutput{
+					{
+						ID: 14073,
+						ShowDate: "1990-04-05",
+						VenueName: "J.J. McCabe's",
+						VenueLocation: "Boulder, CO",
+						Title: "Possum",
+						Duration: "6m 48s",
+						SetName: "Set 1",
+						Tags: []Tag{
+							{
+								Name: "SBD",
+								Group: "Audio",
+							},
+						},
+						Mp3: "https://phish.in/audio/000/014/073/14073.mp3",
+					},
+					{
+						ID: 14074,
+						ShowDate: "1990-04-05",
+						VenueName: "J.J. McCabe's",
+						VenueLocation: "Boulder, CO",
+						Title: "Ya Mar",
+						Duration: "7m 7s",
+						SetName: "Set 1",
+						Tags: []Tag{
+							{
+								Name: "SBD",
+								Group: "Audio",
+							},
+							{
+								Name: "Tease",
+								Group: "Song Content",
+								Notes: "Theme from Bonanza by Ray Evans and\n Jay Livingston",
+							},
+						},
+						Mp3: "https://phish.in/audio/000/014/074/14074.mp3",
+					},
 				},
 			},
 		},
@@ -469,16 +525,8 @@ func TestGetShows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Shows) != len(want.Shows) {
-		t.Errorf("got %d shows want %d shows", len(got.Shows), len(want.Shows))
-	}	
-	for i := range got.Shows {
-		if got.Shows[i].Sbd != want.Shows[i].Sbd {
-			t.Errorf("got %v want %v", got.Shows[i].Sbd, want.Shows[i].Sbd)
-		}
-		if got.Shows[i].Venue.Location != want.Shows[i].Venue.Location {
-			t.Errorf("got %q want %q", got.Shows[i].Venue.Location, want.Shows[i].Venue.Location)
-		}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
 	}
 }
 
@@ -495,8 +543,8 @@ func TestGetAndPrintShowsText(t *testing.T) {
 		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Date:       Venue:         Location:
-1990-04-05  J.J. McCabe's  Boulder, CO
+		want := `Date:       Venue:         Location:    Duration:
+1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m
 `
 		ctx := context.Background()
 		url := c.FormatURL("shows")
@@ -516,8 +564,8 @@ func TestGetAndPrintShowsText(t *testing.T) {
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
-1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
+		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
+696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
 `
 		ctx := context.Background()
 		url := c.FormatURL("shows")
@@ -532,49 +580,105 @@ func TestGetAndPrintShowsText(t *testing.T) {
 	})
 }
 
-// func TestGetShow(t *testing.T) {
-// 	t.Parallel()
-// 	query := "1990-04-05"
-// 	path := "shows"
-// 	ts := httptest.NewTLSServer(http.HandlerFunc(
-// 		func(w http.ResponseWriter, r *http.Request) {
-// 			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-// 				t.Fatalf("wrong url: %s", r.URL.Path)
-// 			}
-// 			http.ServeFile(w, r, "../testdata/show.json")
-// 		}))
-// 	defer ts.Close()
-// 	c := NewClient("dummy", os.Stdout)
-// 	c.BaseURL = ts.URL
-// 	c.HTTPClient = ts.Client()
-// 	// grab a subset to spot-check values
-// 	want := ShowOutput{
-// 		Show: Show{
-// 			Date: "1990-04-05",
-// 			Sbd: true,
-// 			VenueName: "J.J. McCabe's",
-// 			Venue: Venue{
-// 				Location: "Boulder, CO",
-// 			},
-// 		},
-// 	}
-// 	ctx := context.Background()
-// 	c.Query = query
-// 	url := c.FormatURL(path)
-// 	got, err := c.getShow(ctx, url)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	if got.Date != want.Date {
-// 		t.Errorf("got %v want %v", got.Date, want.Date)
-// 	}
-// 	if got.Sbd != want.Sbd {
-// 		t.Errorf("got %v want %v", got.Sbd, want.Sbd)
-// 	}
-// 	if got.Venue.Location != want.Venue.Location {
-// 		t.Errorf("got %q want %q", got.Venue.Location, want.Venue.Location)
-// 	}
-// }
+func TestGetShow(t *testing.T) {
+	t.Parallel()
+	query := "1990-04-05"
+	path := "shows"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/show.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	// grab a subset to spot-check values
+	want := ShowOutput{
+		ID: 696,
+		Date: "1990-04-05",
+		Duration: "2h 27m",
+		Sbd: true,
+		Remastered: false,
+		Tags: []Tag{
+			{
+				Name: "SBD",
+				Group: "Audio",
+			},
+		},
+		VenueName: "J.J. McCabe's",
+		Venue: VenueOutput{
+			Name: "J.J. McCabe's",
+			Location: "Boulder, CO",
+			ShowsCount: 1,
+		},
+		Tracks: []TrackOutput{
+			{
+				ID: 14073,
+				ShowDate: "1990-04-05",
+				VenueName: "J.J. McCabe's",
+				VenueLocation: "Boulder, CO",
+				Title: "Possum",
+				Duration: "6m 48s",
+				SetName: "Set 1",
+				Tags: []Tag{
+					{
+						Name: "SBD",
+						Group: "Audio",
+					},
+				},
+				Mp3: "https://phish.in/audio/000/014/073/14073.mp3",
+			},
+			{
+				ID: 14074,
+				ShowDate: "1990-04-05",
+				VenueName: "J.J. McCabe's",
+				VenueLocation: "Boulder, CO",
+				Title: "Ya Mar",
+				Duration: "7m 7s",
+				SetName: "Set 1",
+				Tags: []Tag{
+					{
+						Name: "SBD",
+						Group: "Audio",
+					},
+					{
+						Name: "Tease",
+						Group: "Song Content",
+						Notes: "Theme from Bonanza by Ray Evans and\n Jay Livingston",
+					},
+				},
+				Mp3: "https://phish.in/audio/000/014/074/14074.mp3",
+			},
+		},
+	}
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	got, err := c.getShow(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// spot-check a few values instead of writing up the whole
+	// struct -- we'll confirm we have what we want in the 
+	// print show text test.
+	if got.Date != want.Date {
+		t.Errorf("got %v want %v", got.Date, want.Date)
+	}
+	if got.Sbd != want.Sbd {
+		t.Errorf("got %v want %v", got.Sbd, want.Sbd)
+	}
+	if got.Venue.Location != want.Venue.Location {
+		t.Errorf("got %q want %q", got.Venue.Location, want.Venue.Location)
+	}
+	for i := 0; i < 2; i++ {
+		if !reflect.DeepEqual(got.Tracks[i], want.Tracks[i]) {
+			t.Errorf("got \n%v want \n%v", got.Tracks[i], want.Tracks[i])
+		}
+	}
+}
 
 func TestGetAndPrintShowText(t *testing.T) {
 	t.Parallel()
@@ -596,18 +700,18 @@ func TestGetAndPrintShowText(t *testing.T) {
 		c.HTTPClient = ts.Client()
 		want := `Date:       Venue:         Location:
 1990-04-05  J.J. McCabe's  Boulder, CO
-            
+
 Set 1
-Possum                   6m 48s   
-Ya Mar                   7m 7s    
-David Bowie              11m 23s  
-Carolina                 2m 1s    
-The Oh Kee Pa Ceremony   1m 45s   
-Suzy Greenberg           5m 19s   
-You Enjoy Myself         12m 40s  
-The Lizards              10m 12s  
-Fire                     4m 20s   
-                         
+Possum                  6m 48s   
+Ya Mar                  7m 7s    
+David Bowie             11m 23s  
+Carolina                2m 1s    
+The Oh Kee Pa Ceremony  1m 45s   
+Suzy Greenberg          5m 19s   
+You Enjoy Myself        12m 40s  
+The Lizards             10m 12s  
+Fire                    4m 20s   
+
 Set 2                    
 Reba                     11m 39s  
 Uncle Pen                5m 14s   
@@ -622,9 +726,9 @@ I Am Hydrogen            2m 19s
 Weekapaug Groove         7m 35s   
 If I Only Had a Brain    3m 10s   
 Contact                  6m 21s   
-                         
-Encore                   
-Golgi Apparatus          4m 41s  
+
+Encore           
+Golgi Apparatus  4m 41s  
 `
 		ctx := context.Background()
 		c.Query = query
@@ -645,20 +749,23 @@ Golgi Apparatus          4m 41s
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
-1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
-            
+		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
+696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
+
+Show Tags:
+SBD
+
 Set 1
-Possum                   6m 48s   SBD
-Ya Mar                   7m 7s    SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston
-David Bowie              11m 23s  SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston, Tease: Wipe Out by The Surfaris
-Carolina                 2m 1s    SBD, A Cappella
-The Oh Kee Pa Ceremony   1m 45s   SBD
-Suzy Greenberg           5m 19s   SBD
-You Enjoy Myself         12m 40s  SBD, Tease: Flash Light by Parliament
-The Lizards              10m 12s  SBD
-Fire                     4m 20s   SBD
-                         
+Possum                  6m 48s   SBD
+Ya Mar                  7m 7s    SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston
+David Bowie             11m 23s  SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston, Tease: Wipe Out by The Surfaris
+Carolina                2m 1s    SBD, A Cappella
+The Oh Kee Pa Ceremony  1m 45s   SBD
+Suzy Greenberg          5m 19s   SBD
+You Enjoy Myself        12m 40s  SBD, Tease: Flash Light by Parliament
+The Lizards             10m 12s  SBD
+Fire                    4m 20s   SBD
+
 Set 2                    
 Reba                     11m 39s  SBD
 Uncle Pen                5m 14s   SBD
@@ -673,10 +780,10 @@ I Am Hydrogen            2m 19s   SBD
 Weekapaug Groove         7m 35s   SBD
 If I Only Had a Brain    3m 10s   SBD
 Contact                  6m 21s   SBD
-                         
-Encore                   
-Golgi Apparatus          4m 41s  SBD
-                         
+
+Encore           
+Golgi Apparatus  4m 41s  SBD
+
 want to listen?
 Possum                   https://phish.in/audio/000/014/073/14073.mp3
 Ya Mar                   https://phish.in/audio/000/014/074/14074.mp3
@@ -765,7 +872,7 @@ func TestGetAndPrintVenuesText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Venues:                                Location:     Show Count:
+	want := `Venue:                                 Location:     Show Count:
 The Base Lodge, Johnson State College  Johnson, VT   2
 The Academy                            New York, NY  1
 `
@@ -834,7 +941,7 @@ func TestGetAndPrintVenueText(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	want := `Venue:       Location:     Show Count:
 The Academy  New York, NY  1
-             
+
 Show Dates
 1991-07-15
 `
@@ -999,18 +1106,55 @@ func TestGetTours(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := ToursOutput{
-		Tours: []Tour{
+		Tours: []TourOutput{
 			{
 				Name: "1983 Tour",
 				StartsOn: "1983-12-02",
 				EndsOn: "1983-12-02",
 				ShowsCount: 1,
+				Shows: []ShowOutput{
+					{
+						ID: 1324,
+						Date: "1983-12-02",
+						Duration: "17m 11s",
+						Sbd: true,
+						Remastered: false,
+						Venue: VenueOutput{},
+						Tags: nil,
+						VenueName: "Harris-Millis Cafeteria, University of Vermont",
+						Tracks: []TrackOutput{},
+					},
+				},
 			},
 			{
 				Name: "1984 Tour",
 				StartsOn: "1984-11-03",
 				EndsOn: "1984-12-01",
 				ShowsCount: 2,
+				Shows: []ShowOutput{
+					{
+						ID: 1334,
+						Date: "1984-11-03",
+						Duration: "1h 10m",
+						Sbd: false,
+						Remastered: false,
+						Venue: VenueOutput{},
+						Tags: nil,
+						VenueName: "Slade Hall, University of Vermont",
+						Tracks: []TrackOutput{},
+					},
+					{
+						ID: 2,
+						Date: "1984-12-01",
+						Duration: "1h 35m",
+						Sbd: true,
+						Remastered: false,
+						Venue: VenueOutput{},
+						Tags: nil,
+						VenueName: "Nectar's",
+						Tracks: []TrackOutput{},
+					},
+				},
 			},
 		},
 	}
@@ -1020,19 +1164,8 @@ func TestGetTours(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, v := range got.Tours {
-		if v.Name != want.Tours[i].Name {
-			t.Errorf("got %s want %s", v.Name, want.Tours[i].Name)
-		}
-		if v.StartsOn != want.Tours[i].StartsOn {
-			t.Errorf("got %s want %s", v.StartsOn, want.Tours[i].StartsOn)
-		}
-		if v.EndsOn != want.Tours[i].EndsOn {
-			t.Errorf("got %s want %s", v.EndsOn, want.Tours[i].EndsOn)
-		}
-		if v.ShowsCount != want.Tours[i].ShowsCount {
-			t.Errorf("got %d want %d", v.ShowsCount, want.Tours[i].ShowsCount)
-		}
+	if !reflect.DeepEqual(got.Tours, want.Tours) {
+		t.Errorf("got \n%v \nwant \n%v", got.Tours, want.Tours)
 	}
 }
 
@@ -1048,7 +1181,7 @@ func TestGetAndPrintToursText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Name:      Starts On:  Ends On:    Show Count:
+	want := `Name:      Starts On:  Ends On:    Shows Count:
 1983 Tour  1983-12-02  1983-12-02  1
 1984 Tour  1984-11-03  1984-12-01  2
 `
@@ -1085,9 +1218,17 @@ func TestGetTour(t *testing.T) {
 		StartsOn: "1985-03-04",
 		EndsOn: "1985-11-23",
 		ShowsCount: 6,
-		Shows: []Show{
+		Shows: []ShowOutput{
 			{
+				ID: 3,
 				Date: "1985-03-04",
+				Duration: "40m 14s",
+				Sbd: true,
+				Remastered: false,
+				Venue: VenueOutput{},
+				Tags: nil,
+				VenueName: "Hunt's",
+				Tracks: []TrackOutput{},
 			},
 		},
 	}
@@ -1123,8 +1264,8 @@ func TestGetAndPrintTourText(t *testing.T) {
 	want := `Name:      Starts On:  Ends On:    Show Count:
 1985 Tour  1985-03-04  1985-11-23  6
 
-Date:       Venue:  Location:       Duration:  Soundboard:  Remastered:
-1985-03-04  Hunt's  Burlington, VT  40m 14s    yes          
+ID:  Date:       Venue:  Location:  Duration:  Soundboard:  Remastered:
+3    1985-03-04  Hunt's             40m 14s    yes          
 `
 	ctx := context.Background()
 	c.Query = query
@@ -1150,16 +1291,20 @@ func TestGetSongs(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := SongsOutput{
-		Songs: []Song{
+		Songs: []SongOutput{
 			{
+				ID: 84,
 				Title: "Billy Breathes",
 				Original: true,
 				Artist: "",
+				TracksCount: 64,
+				Tracks: []TrackOutput{},
 			},
 			{
 				Title: "Arc",
 				Original: false,
 				Artist: "Arctic Monkeys",
+				Tracks: []TrackOutput{},
 			},
 		},
 	}
@@ -1169,16 +1314,8 @@ func TestGetSongs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, v := range got.Songs {
-		if v.Title != want.Songs[i].Title {
-			t.Errorf("got %s want %s", v.Title, want.Songs[i].Title)
-		}
-		if v.Original != want.Songs[i].Original {
-			t.Errorf("got %v want %v", v.Original, want.Songs[i].Original)
-		}
-		if v.Artist != want.Songs[i].Artist {
-			t.Errorf("got %s want %s", v.Artist, want.Songs[i].Artist)
-		}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got \n%v \nwant\n%v", got, want)
 	}
 }
 
@@ -1225,13 +1362,35 @@ func TestGetSong(t *testing.T) {
 	c := NewClient("dummy", os.Stdout)
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	// grab a subset to spot-check values
-	want := Song{
+	want := SongOutput{
+		ID: 979,
 		Title: "David Bowie",
-		Alias: "",
 		Original: true,
 		Artist: "",
 		TracksCount: 447,
+		Tracks: []TrackOutput{
+			{
+				ID: 115,
+				ShowDate: "1986-10-31",
+				VenueName: "Sculpture Room, Goddard College",
+				VenueLocation: "Plainfield, VT",
+				Title: "David Bowie",
+				Duration: "10m 19s",
+				SetName: "Set 2",
+				Tags: []Tag{
+					{
+						Name: "SBD",
+						Group: "Audio",
+					},
+					{
+						Name: "Jamcharts",
+						Group: "Curated Selections",
+						Notes: "Earliest known live version. Jam is played at a slowed tempo initially, but picks up speed and intensity as it develops.",
+					},
+				},
+				Mp3: "https://phish.in/audio/000/000/115/115.mp3",
+			},
+		},
 	}
 	ctx := context.Background()
 	c.Query = query
@@ -1240,20 +1399,8 @@ func TestGetSong(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Title != want.Title {
-		t.Errorf("got %s want %s", got.Title, want.Title)
-	}
-	if got.Alias != want.Alias {
-		t.Errorf("got %s want %s", got.Alias, want.Alias)
-	}
-	if got.Original != want.Original {
-		t.Errorf("got %v want %v", got.Original, want.Original)
-	}
-	if got.Artist != want.Artist {
-		t.Errorf("got %s want %s", got.Artist, want.Artist)
-	}
-	if got.TracksCount != want.TracksCount {
-		t.Errorf("got %d want %d", got.TracksCount, want.TracksCount)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got \n%v \nwant\n%v", got, want)
 	}
 }
 
@@ -1274,14 +1421,12 @@ func TestGetAndPrintSongText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Title:       Phish Original:  Original Artist:  TracksCount
-David Bowie  true                               447
+	want := `Title:       ID:  Phish Original:  Original Artist:  TracksCount
+David Bowie  979  true                               447
 
 Tracks
-Date:       Venue:                           Location:             Mp3
-1986-10-31  Sculpture Room, Goddard College  Plainfield, VT        https://phish.in/audio/000/000/115/115.mp3
-1986-12-06  The Ranch                        South Burlington, VT  https://phish.in/audio/000/000/147/147.mp3
-1986-12-06  The Ranch                        South Burlington, VT  https://phish.in/audio/000/000/145/145.mp3
+ID:  Date:       Venue:                           Location:       Duration:  Mp3
+115  1986-10-31  Sculpture Room, Goddard College  Plainfield, VT  10m 19s    https://phish.in/audio/000/000/115/115.mp3
 `
 	ctx := context.Background()
 	c.Query = query
@@ -1307,19 +1452,37 @@ func TestGetTracks(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := TracksOutput{
-		Tracks: []Track{
+		Tracks: []TrackOutput{
 			{
+				ID: 4270,
 				Title: "Maze",
 				ShowDate: "1994-10-07",
 				VenueName: "Stabler Arena, Lehigh University",
 				VenueLocation: "Bethlehem, PA",
+				Duration: "11m 13s",
+				SetName: "Set 2",
+				Tags: []Tag{},
 				Mp3: "https://phish.in/audio/000/004/270/4270.mp3",
 			},
 			{
+				ID: 6693,
 				Title: "Stash",
 				ShowDate: "1993-04-09",
 				VenueName: "State Theatre",
 				VenueLocation: "Minneapolis, MN",
+				Duration: "11m 15s",
+				SetName: "Set 1",
+				Tags: []Tag{
+					{
+						Name: "SBD",
+						Group: "Audio",
+					},
+					{
+						Name: "Jamcharts",
+						Group: "Curated Selections",
+						Notes: "Several minutes of growly, percussive, dissonant, and atypical jamming.",					
+					},
+				},
 				Mp3: "https://phish.in/audio/000/006/693/6693.mp3",
 			},
 		},
@@ -1330,22 +1493,8 @@ func TestGetTracks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, v := range got.Tracks {
-		if v.Title != want.Tracks[i].Title {
-			t.Errorf("got %s want %s", v.Title, want.Tracks[i].Title)
-		}
-		if v.ShowDate != want.Tracks[i].ShowDate {
-			t.Errorf("got %s want %s", v.ShowDate, want.Tracks[i].ShowDate)
-		}
-		if v.VenueLocation != want.Tracks[i].VenueLocation {
-			t.Errorf("got %s want %s", v.VenueLocation, want.Tracks[i].VenueLocation)
-		}
-		if v.VenueName != want.Tracks[i].VenueName {
-			t.Errorf("got %s want %s", v.VenueName, want.Tracks[i].VenueName)
-		}
-		if v.Mp3 != want.Tracks[i].Mp3 {
-			t.Errorf("got %s want %s", v.Mp3, want.Tracks[i].Mp3)
-		}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got \n%v \nwant\n%v", got, want)
 	}
 }
 
@@ -1361,9 +1510,9 @@ func TestGetAndPrintTracksText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Date:       Venue:                            Location:        Title:  Mp3
-1994-10-07  Stabler Arena, Lehigh University  Bethlehem, PA    Maze    https://phish.in/audio/000/004/270/4270.mp3
-1993-04-09  State Theatre                     Minneapolis, MN  Stash   https://phish.in/audio/000/006/693/6693.mp3
+	want := `ID:   Date:       Venue:                            Location:        Title:  Mp3
+4270  1994-10-07  Stabler Arena, Lehigh University  Bethlehem, PA    Maze    https://phish.in/audio/000/004/270/4270.mp3
+6693  1993-04-09  State Theatre                     Minneapolis, MN  Stash   https://phish.in/audio/000/006/693/6693.mp3
 `
 	ctx := context.Background()
 	url := c.FormatURL("tracks")
@@ -1392,12 +1541,25 @@ func TestGetTrack(t *testing.T) {
 	c := NewClient("dummy", os.Stdout)
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	// grab a subset to spot-check values
-	want := Track{
+	want := TrackOutput{
+		ID: 6693,
 		Title: "Stash",
 		ShowDate: "1993-04-09",
 		VenueName: "State Theatre",
 		VenueLocation: "Minneapolis, MN",
+		Duration: "11m 15s",
+		SetName: "Set 1",
+		Tags: []Tag{
+			{
+				Name: "SBD",
+				Group: "Audio",
+			},
+			{
+				Name: "Jamcharts",
+				Group: "Curated Selections",
+				Notes: "Several minutes of growly, percussive, dissonant, and atypical jamming.",					
+			},
+		},
 		Mp3: "https://phish.in/audio/000/006/693/6693.mp3",
 	}
 	ctx := context.Background()
@@ -1407,20 +1569,8 @@ func TestGetTrack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Title != want.Title {
-		t.Errorf("got %s want %s", got.Title, want.Title)
-	}
-	if got.ShowDate != want.ShowDate {
-		t.Errorf("got %s want %s", got.ShowDate, want.ShowDate)
-	}
-	if got.VenueName != want.VenueName {
-		t.Errorf("got %s want %s", got.VenueName, want.VenueName)
-	}
-	if got.VenueLocation != want.VenueLocation {
-		t.Errorf("got %s want %s", got.VenueLocation, want.VenueLocation)
-	}
-	if got.Mp3 != want.Mp3 {
-		t.Errorf("got %s want %s", got.Mp3, want.Mp3)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got \n%v \nwant\n%v", got, want)
 	}
 }
 
@@ -1441,8 +1591,8 @@ func TestGetAndPrintTrackText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Date:       Venue:         Location:        Title:  Duration  Set    Mp3
-1993-04-09  State Theatre  Minneapolis, MN  Stash   11m 15s   Set 1  https://phish.in/audio/000/006/693/6693.mp3
+	want := `ID:   Date:       Venue:         Location:        Title:  Duration  Set    Mp3
+6693  1993-04-09  State Theatre  Minneapolis, MN  Stash   11m 15s   Set 1  https://phish.in/audio/000/006/693/6693.mp3
 
 Tags
 Name:      Group:              Notes:
