@@ -1,9 +1,10 @@
-package phishin
+package cli
 
 import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,6 +58,264 @@ func TestFormatURL(t *testing.T) {
 		}
 	})
 }
+
+func TestFromArgs(t *testing.T) {
+	t.Parallel()
+	c := NewClient("dummy", io.Discard)
+	t.Run("error for unrecognized command", func(t *testing.T) {
+		if err := c.fromArgs([]string{"phish"}); err == nil {
+			t.Error("wanted error, got nil")
+		}
+	})
+	t.Run("show-on-date errors with no query", func(t *testing.T) {
+		err := c.fromArgs([]string{"show-on-date", "-s", ""})
+		if err == nil {
+			t.Error("wanted error, got nil")
+		}
+	})
+	t.Run("show-on-date does not error with query", func(t *testing.T) {
+		if err := c.fromArgs([]string{"show-on-date", "-s", "1994-10-31"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+	})
+	t.Run("shows-on-day-of-year errors with no query", func(t *testing.T) {
+		err := c.fromArgs([]string{"shows-on-day-of-year", "-s", ""})
+		if err == nil {
+			t.Error("wanted error, got nil")
+		}
+	})
+	t.Run("shows-on-day-of-year does not error with query", func(t *testing.T) {
+		if err := c.fromArgs([]string{"shows-on-day-of-year", "-s", "10-31"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+	})
+	t.Run("random-show doesn't take a query param", func(t *testing.T) {
+		if err := c.fromArgs([]string{"random-show", "-s", "10-31"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if c.Query != "" {
+			t.Errorf("got %q wanted nothing", c.Query)
+		}
+	})
+	t.Run("search errors with no query", func(t *testing.T) {
+		err := c.fromArgs([]string{"search", "-s", ""})
+		if err == nil {
+			t.Error("wanted error, got nil")
+		}
+	})
+	t.Run("search does not error with query", func(t *testing.T) {
+		if err := c.fromArgs([]string{"search", "-s", "costume"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+	})
+	t.Run("eras, tours, and tags don't take pagination or sort params", func(t *testing.T) {
+		t.Run("eras no pagination", func(t *testing.T) {
+			if err := c.fromArgs([]string{"eras", "-pp", "15"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 0 {
+				t.Errorf("got %d wanted 0", len(c.Parameters))
+			}
+		})
+		t.Run("tours no pagination", func(t *testing.T) {
+			if err := c.fromArgs([]string{"tours", "-pp", "15"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 0 {
+				t.Errorf("got %d wanted 0", len(c.Parameters))
+			}
+		})
+		t.Run("tags no pagination", func(t *testing.T) {
+			if err := c.fromArgs([]string{"tags", "-pp", "15"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 0 {
+				t.Errorf("got %d wanted 0", len(c.Parameters))
+			}
+		})
+		t.Run("eras no sort", func(t *testing.T) {
+			if err := c.fromArgs([]string{"eras", "-d", "asc"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 0 {
+				t.Errorf("got %d wanted 0", len(c.Parameters))
+			}
+		})
+		t.Run("tours no sort", func(t *testing.T) {
+			if err := c.fromArgs([]string{"tours", "-d", "asc"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 0 {
+				t.Errorf("got %d wanted 0", len(c.Parameters))
+			}
+		})
+		t.Run("tags no sort", func(t *testing.T) {
+			if err := c.fromArgs([]string{"tags", "-d", "asc"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 0 {
+				t.Errorf("got %d wanted 0", len(c.Parameters))
+			}
+		})
+	})
+	t.Run("include_show_counts=true added to years", func(t *testing.T) {
+		if err := c.fromArgs([]string{"years"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		want := "include_show_counts=true"
+		if len(c.Parameters) != 1 {
+			t.Errorf("got param length %d, wanted 1", len(c.Parameters))
+		}
+		if c.Parameters[0] != "include_show_counts=true" {
+			t.Errorf("got %q wanted %q", c.Parameters[0], want)
+		}
+		// reset parameters
+		c.Parameters = nil
+	})
+	t.Run("songs does not support tag flag", func(t *testing.T) {
+		if err := c.fromArgs([]string{"songs", "-tag", "sbd"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+	})
+	t.Run("venues does not support tag flag", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-tag", "sbd"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+	})
+	t.Run("perPage of 20 will not be added to params list", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-pp", "20"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+	})
+	t.Run("perPage of < 1 will not be added to params list", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-pp", "0"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+	})
+	t.Run("perPage of > 1 and !20 will  be added to params list", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-pp", "10"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 1 {
+			t.Errorf("got %d wanted 1", len(c.Parameters))
+		}
+		want := "per_page=10"
+		if c.Parameters[0] != want {
+			t.Errorf("got %q want %q", c.Parameters[0], want)
+		}
+		// reset
+		c.Parameters = nil
+	})
+	t.Run("page < 2 will not be set", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-p", "0"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+	})
+	t.Run("page > 1 are set", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-p", "10"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 1 {
+			t.Errorf("got %d wanted 1", len(c.Parameters))
+		}
+		want := "page=10"
+		if c.Parameters[0] != want {
+			t.Errorf("got %q want %q", c.Parameters[0], want)
+		}
+		// reset
+		c.Parameters = nil
+	})
+	t.Run("sort directions other than asc and desc are ignored", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-d", "phish"}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+		t.Run("accepts asc", func(t *testing.T) {
+			if err := c.fromArgs([]string{"venues", "-d", "asc"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 1 {
+				t.Errorf("got %d wanted 1", len(c.Parameters))
+			}
+			want := "sort_dir=asc"
+			if c.Parameters[0] != want {
+				t.Errorf("got %q want %q", c.Parameters[0], want)
+			}
+			// reset
+			c.Parameters = nil
+		})
+		t.Run("accepts desc", func(t *testing.T) {
+			if err := c.fromArgs([]string{"venues", "-sort-dir", "desc"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			if len(c.Parameters) != 1 {
+				t.Errorf("got %d wanted 1", len(c.Parameters))
+			}
+			want := "sort_dir=desc"
+			if c.Parameters[0] != want {
+				t.Errorf("got %q want %q", c.Parameters[0], want)
+			}
+			// reset
+			c.Parameters = nil
+		})
+	})
+	t.Run("sort attr not added to params if blank", func(t *testing.T) {
+		if err := c.fromArgs([]string{"venues", "-sort-attr", ""}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+		t.Run("attr otherwise not validated, just added", func(t *testing.T) {
+			if err := c.fromArgs([]string{"venues", "-a", "phish"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			want := "sort_attr=phish"
+			if c.Parameters[0] != want {
+				t.Errorf("got %q want %q", c.Parameters[0], want)
+			}
+			// reset
+			c.Parameters = nil
+		})
+	})
+	t.Run("empty tag won't be added to params", func(t *testing.T) {
+		if err := c.fromArgs([]string{"shows", "-tag", ""}); err != nil {
+			t.Errorf("wanted nil, got %v", err)
+		}
+		if len(c.Parameters) != 0 {
+			t.Errorf("got %d wanted 0", len(c.Parameters))
+		}
+		t.Run("non-empty tag will be added", func(t *testing.T) {
+			if err := c.fromArgs([]string{"shows", "-tag", "sbd"}); err != nil {
+				t.Errorf("wanted nil, got %v", err)
+			}
+			want := "tag=sbd"
+			if c.Parameters[0] != want {
+				t.Errorf("got %q want %q", c.Parameters[0], want)
+			}
+			// reset
+			c.Parameters = nil
+		})
+	})
+}
+
 
 func TestGetEras(t *testing.T) {
 	t.Parallel()
@@ -546,10 +805,10 @@ func TestGetAndPrintShowsText(t *testing.T) {
 		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Total Entries: 1759  Total Pages: 88  Result Page:1
-
-Date:       Venue:         Location:    Duration:
+		want := `Date:       Venue:         Location:    Duration:
 1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m
+
+Total Entries: 1759  Total Pages: 88  Result Page: 1
 `
 		ctx := context.Background()
 		url := c.FormatURL("shows")
@@ -569,10 +828,10 @@ Date:       Venue:         Location:    Duration:
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `Total Entries: 1759  Total Pages: 88  Result Page:1
-
-ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
+		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
 696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
+
+Total Entries: 1759  Total Pages: 88  Result Page: 1
 `
 		ctx := context.Background()
 		url := c.FormatURL("shows")
@@ -882,11 +1141,11 @@ func TestGetAndPrintVenuesText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Total Entries: 666  Total Pages: 34  Result Page:1
-
-Venue:                                 Location:     Show Count:
+	want := `Venue:                                 Location:     Show Count:
 The Base Lodge, Johnson State College  Johnson, VT   2
 The Academy                            New York, NY  1
+
+Total Entries: 666  Total Pages: 34  Result Page: 1
 `
 	ctx := context.Background()
 	url := c.FormatURL("venues")
@@ -1346,11 +1605,11 @@ func TestGetAndPrintSongsText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Total Entries: 942  Total Pages: 48  Result Page:1
-
-Title:          Phish Original:  Original Artist:  TracksCount
+	want := `Title:          Phish Original:  Original Artist:  TracksCount
 Billy Breathes  yes                                64
 Arc                              Arctic Monkeys    0
+
+Total Entries: 942  Total Pages: 48  Result Page: 1
 `
 	ctx := context.Background()
 	url := c.FormatURL("songs")
@@ -1530,11 +1789,11 @@ func TestGetAndPrintTracksText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Total Entries: 35069  Total Pages: 1754  Result Page:1
-
-ID:   Date:       Venue:                            Location:        Title:  Mp3
+	want := `ID:   Date:       Venue:                            Location:        Title:  Mp3:
 4270  1994-10-07  Stabler Arena, Lehigh University  Bethlehem, PA    Maze    https://phish.in/audio/000/004/270/4270.mp3
 6693  1993-04-09  State Theatre                     Minneapolis, MN  Stash   https://phish.in/audio/000/006/693/6693.mp3
+
+Total Entries: 35069  Total Pages: 1754  Result Page: 1
 `
 	ctx := context.Background()
 	url := c.FormatURL("tracks")

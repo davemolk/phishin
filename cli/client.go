@@ -1,4 +1,4 @@
-package phishin
+package cli
 
 import (
 	"context"
@@ -23,6 +23,7 @@ type Client struct {
 	Parameters []string
 	Output io.Writer
 	Verbose bool
+	Debug bool
 }
 
 func NewClient(apiKey string, output io.Writer) *Client {
@@ -49,180 +50,73 @@ func (c *Client) FormatURL(path string) string {
 }
 
 func (c *Client) fromArgs(args []string) error {
-	// todo use one flagset for all (or keep separate in case things change?)
-	// separate means we can have diff flag usage msgs
-	eras := flag.NewFlagSet("eras", flag.ExitOnError)
-	eras.StringVar(&c.Query, "s", "", "search query")
-	erasOutput := eras.String("o", "text", "print output as text/json")
-	// eras.Usage = func() {
-	// 	fmt.Fprintf(flag.CommandLine.Output(), "%s tool\n", os.Args[0])
-	// 	fmt.Fprintln(flag.CommandLine.Output(), "usage information:")
-	// 	flag.PrintDefaults()
-	// }
+	phishin := flag.NewFlagSet("phishin", flag.ExitOnError)
+	query := phishin.String("search", "", "search query")
+	phishin.StringVar(query, "s", "", "search query")
+	output := phishin.String("output", "text", "print output as <text> or <json>")
+	phishin.StringVar(output, "o", "text", "print output as <text> or <json>")
+	sortDir := phishin.String("sort-dir", "", "sort results <asc> or <desc>")
+	phishin.StringVar(sortDir, "d", "", "sort results <asc> or <desc>")
+	sortAttr := phishin.String("sort-attr", "", "sort results <attr>")
+	phishin.StringVar(sortAttr, "a", "", "sort results <attr>")
+	perPage := phishin.Int("per-page", 20, "number of results included per page")
+	phishin.IntVar(perPage, "pp", 20, "number of results included per page")
+	page := phishin.Int("page", 1, "result page to return")
+	phishin.IntVar(page, "p", 1, "result page to return")
+	tag := phishin.String("tag", "", "filter by <tag>")
+	phishin.StringVar(tag, "t", "", "filter by <tag>")
+	verbose := phishin.Bool("verbose", false, "verbose output")
+	phishin.BoolVar(verbose, "v", false, "verbose output")
+	debug := phishin.Bool("debug", false, "print the url that the client is sending to the server")
 
-	years := flag.NewFlagSet("years", flag.ExitOnError)
-	years.StringVar(&c.Query, "s", "", "search query")
-    yearsOutput := years.String("o", "text", "print output as text/json")
+	phishin.Usage = func() {
+		fmt.Fprint(os.Stderr, usage)
+		fmt.Println("Flags:")
+		phishin.PrintDefaults()
+	}
+	if err := phishin.Parse(args[1:]); err != nil {
+		return fmt.Errorf("error parsing args: %w", err)
+	}
 
-	tags := flag.NewFlagSet("tags", flag.ExitOnError)
-	tags.StringVar(&c.Query, "s", "", "search query")
-	tagsOutput := tags.String("o", "text", "print output as text/json")
-
-	tours := flag.NewFlagSet("tours", flag.ExitOnError)
-	tours.StringVar(&c.Query, "s", "", "search query")
-	toursOutput := tours.String("o", "text", "print output as text/json")
-
-	/* longer ones */
-
-	shows := flag.NewFlagSet("shows", flag.ExitOnError)
-	shows.StringVar(&c.Query, "s", "", "search query")
-	showsSortDir := shows.String("sortDir", "", "sort results asc/desc") 
-    showsSortAttr := shows.String("sortAttr", "", "sort results <attr>")
-	showsPerPage := shows.Int("pp", 20, "per page")
-	showsPage := shows.Int("p", 1, "page")
-	showsTag := shows.String("tag", "", "filter by <tag>")
-	showsVerbose := shows.Bool("v", false, "fill this out")
-	showsOutput := shows.String("o", "text", "print output as text/json")
-
-	venues := flag.NewFlagSet("venues", flag.ExitOnError)
-	venues.StringVar(&c.Query, "s", "", "search query")
-	venuesSortDir := venues.String("sortDir", "", "sort results asc/desc") 
-    venuesSortAttr := venues.String("sortAttr", "", "sort results <attr>")
-	venuesPerPage := venues.Int("pp", 20, "per page")
-	venuesPage := venues.Int("p", 1, "page")
-	venuesOutput := venues.String("o", "text", "print output as text/json")
-    
-	songs := flag.NewFlagSet("songs", flag.ExitOnError)
-	songs.StringVar(&c.Query, "s", "", "search query")
-	songsSortDir := songs.String("sortDir", "", "sort results asc/desc") 
-    songsSortAttr := songs.String("sortAttr", "", "sort results <attr>")
-	songsPerPage := songs.Int("pp", 20, "per page")
-	songsPage := songs.Int("p", 1, "page")
-	songsOutput := songs.String("o", "text", "print output as text/json")
-
-	tracks := flag.NewFlagSet("tracks", flag.ExitOnError)
-	tracks.StringVar(&c.Query, "s", "", "search query")
-	tracksSortDir := tracks.String("sortDir", "", "sort results asc/desc") 
-    tracksSortAttr := tracks.String("sortAttr", "", "sort results <attr>")
-	tracksPerPage := tracks.Int("pp", 20, "per page")
-	tracksPage := tracks.Int("p", 1, "page")
-	tracksTag := tracks.String("tag", "", "filter by <tag>")
-	tracksOutput := tracks.String("o", "text", "print output as text/json")
+	c.Query = *query
+	c.PrintJSON = *output == "json"
+	c.Verbose = *verbose
+	c.Debug = *debug
 
 	path := args[0]
 	switch path {
-	case "eras":
-		if err := eras.Parse(args[1:]); err != nil {
-			return fmt.Errorf("error parsing eras args: %w", err)
-		}
-		c.PrintJSON = *erasOutput == "json"
-	case "years":
-		if err := years.Parse(args[1:]); err != nil {
-            return err
-        }
-        // let's always include this
-        c.Parameters = append(c.Parameters, "include_show_counts=true")
-        c.PrintJSON = *yearsOutput == "json"
-	case "songs":
-		if err := songs.Parse(args[1:]); err != nil {
-			return err
-		}
-		if err := c.validateOutput(*songsOutput, false); err != nil {
-			return err
-		}
-		c.parseSortParams(*songsSortDir, *songsSortAttr)
-		c.parsePageParams(*songsPerPage, *songsPage)
-	case "tours":
-		if err := tours.Parse(args[1:]); err != nil {
-			return err
-		}
-		c.PrintJSON = *toursOutput == "json"
-	case "venues":
-		if err := venues.Parse(args[1:]); err != nil {
-			return err
-		}
-		if err := c.validateOutput(*venuesOutput, false); err != nil {
-			return err
-		}
-		c.parseSortParams(*venuesSortDir, *venuesSortAttr)
-		c.parsePageParams(*venuesPerPage, *venuesPage)
-	case "shows":
-		if err := shows.Parse(args[1:]); err != nil {
-			return err
-		}
-		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
-			return err
-		}
-		c.parseSortParams(*showsSortDir, *showsSortAttr)
-		c.parsePageParams(*showsPerPage, *showsPage)
-		c.parseTag(*showsTag)
-	case "show-on-date":
-		if err := shows.Parse(args[1:]); err != nil {
-			return err
-		}
+	case showsPath, tracksPath:
+		c.parseTag(*tag)
+		c.parsePageParams(*perPage, *page)
+		c.parseSortParams(*sortDir, *sortAttr)	
+	case songsPath, venuesPath:
+		c.parsePageParams(*perPage, *page)
+		c.parseSortParams(*sortDir, *sortAttr)
+	case yearsPath:
+		// let's always include this
+		c.Parameters = append(c.Parameters, "include_show_counts=true")
+	case showOnDatePath:
 		if c.Query == "" {
-			// todo put usage here
 			return errors.New("need a date")
 		}
-		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
-			return err
-		}
-	case "shows-on-day-of-year":
-		if err := shows.Parse(args[1:]); err != nil {
-			return err
-		}
+	case showsDayOfYearPath:
 		if c.Query == "" {
-			// todo put usage here
 			return errors.New("need a day")
 		}
-		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
-			return err
-		}
-	case "random-show":
-		if err := shows.Parse(args[1:]); err != nil {
-			return err
-		}
+	case randomShowPath:
 		// doesn't take a parameter, so drop if user added one
 		c.Query = ""
-		if err := c.validateOutput(*showsOutput, *showsVerbose); err != nil {
-			return err
-		}
-	case "tracks":
-		if err := tracks.Parse(args[1:]); err != nil {
-			return err
-		}
-		if err := c.validateOutput(*tracksOutput, false); err != nil {
-			return err
-		}
-		c.parseSortParams(*tracksSortDir, *tracksSortAttr)
-		c.parsePageParams(*tracksPerPage, *tracksPage)
-		c.parseTag(*tracksTag)
-	case "search":
+	case searchPath:
 		if c.Query == "" {
-			// todo put usage here
 			return errors.New("need a search term")
 		}
-	// case "playlists":
-	case "tags":
-		if err := tags.Parse(args[1:]); err != nil {
-			return err
-		}
-		c.PrintJSON = *tagsOutput == "json"
+	case erasPath, toursPath, tagsPath:
+		// do nothing
 	default:
-		return fmt.Errorf("%s is not a recognized command", path)
+		fmt.Fprintf(os.Stderr, "%s is not a recognized command\n", path)
+		return errors.New(endpointList)
 	}
 	return nil
-}
-
-func (c *Client) validateOutput(output string, verbose bool) error {
-    // output
-    if output != "text" && output != "json" {
-        return errors.New("output must be text or json")
-    }
-    c.PrintJSON = output == "json"
-	// verbose printing
-	c.Verbose = verbose
-    return nil
 }
 
 func (c *Client) parseSortParams(sortDir, sortAttr string) {
@@ -248,16 +142,17 @@ func (c *Client) parsePageParams(perPage, page int) {
     }
 }
 
-// todo match against possiblilities or just accept input?
 func (c *Client) parseTag(tag string) {
 	if tag != "" {
-        c.Parameters = append(c.Parameters, fmt.Sprintf("tags=%s", tag))
+        c.Parameters = append(c.Parameters, fmt.Sprintf("tag=%s", tag))
     }
 }
 
 func (c *Client) Get(ctx context.Context, url string, data any) error {
 	// url = "https://phish.in/api/v1/tracks?per_page=3&page=4&sort_dir=asc"
-	// fmt.Println("url", url)
+	if c.Debug {
+		fmt.Fprintln(c.Output, url)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("error building request: %w", err)
@@ -376,7 +271,7 @@ func (c *Client) getYear(ctx context.Context, url string) (ShowsOutput, error) {
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowsOutput{}, fmt.Errorf("unable to get year details: %w", err)
 	}
-	return convertToShowsOutput(resp.Data), nil
+	return convertShowToShowsOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintShows(ctx context.Context, url string) error {
@@ -395,7 +290,7 @@ func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowsOutput{}, fmt.Errorf("unable to get shows list: %w", err)
 	}
-	o := convertToShowsOutput(resp.Data)
+	o := convertShowToShowsOutput(resp.Data)
 	o.TotalEntries = resp.TotalEntries
 	o.TotalPages = resp.TotalPages
 	o.CurrentPage = resp.Page
@@ -418,7 +313,7 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowOutput{}, fmt.Errorf("unable to get show details: %w", err)
 	}
-	return convertToShowOutput(resp.Data), nil
+	return convertShowToShowOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTours(ctx context.Context, url string) error {
@@ -445,7 +340,7 @@ func (c *Client) getTours(ctx context.Context, url string) (ToursOutput, error) 
 			StartsOn: t.StartsOn,
 			EndsOn: t.EndsOn,
 		}
-		shows := convertToShowsOutput(t.Shows)
+		shows := convertShowToShowsOutput(t.Shows)
 		tour.Shows = shows.Shows
 		tours = append(tours, tour)
 	}
@@ -476,7 +371,7 @@ func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
 		StartsOn: resp.Data.StartsOn,
 		EndsOn: resp.Data.EndsOn,
 	}
-	shows := convertToShowsOutput(resp.Data.Shows)
+	shows := convertShowToShowsOutput(resp.Data.Shows)
 	o.Shows = shows.Shows
 	return o, nil
 }
@@ -499,7 +394,7 @@ func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error
 	}
 	venues := make([]VenueOutput, 0, len(resp.Data))
 	for _, v := range resp.Data {
-		venues = append(venues, convertToVenueOutput(v))
+		venues = append(venues, convertVenueToVenueOutput(v))
 	}
 	return VenuesOutput{
 		TotalEntries: resp.TotalEntries,
@@ -525,7 +420,7 @@ func (c *Client) getVenue(ctx context.Context, url string) (VenueOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return VenueOutput{}, fmt.Errorf("unable to get tour details: %w", err)
 	}
-	return convertToVenueOutput(resp.Data), nil
+	return convertVenueToVenueOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTags(ctx context.Context, url string) error {
@@ -603,7 +498,7 @@ func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) 
 	}
 	songs := make([]SongOutput, 0, len(resp.Data))
 	for _, s := range resp.Data {
-		song := convertToSongOutput(s)
+		song := convertSongToSongOutput(s)
 		songs = append(songs, song)
 	}
 	o := SongsOutput{
@@ -631,7 +526,7 @@ func (c *Client) getSong(ctx context.Context, url string) (SongOutput, error) {
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return SongOutput{}, fmt.Errorf("unable to get song details: %w", err)
 	}
-	return convertToSongOutput(resp.Data), nil
+	return convertSongToSongOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTracks(ctx context.Context, url string) error {
@@ -650,7 +545,7 @@ func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return TracksOutput{}, fmt.Errorf("unable to get tracks list: %w", err)
 	}
-	o := convertToTracksOutput(resp.Data)
+	o := convertTracksToTracksOutput(resp.Data)
 	o.TotalEntries = resp.TotalEntries
 	o.TotalPages = resp.TotalPages
 	o.CurrentPage = resp.Page
@@ -673,5 +568,5 @@ func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return TrackOutput{}, fmt.Errorf("unable to get track details: %w", err)
 	}
-	return convertToTrackOutput(resp.Data), nil
+	return convertTrackToTrackOutput(resp.Data), nil
 }

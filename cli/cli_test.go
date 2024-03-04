@@ -1,6 +1,8 @@
-package phishin
+package cli
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestConvertMillisecondToConcertDuration(t *testing.T) {
 	type test struct {

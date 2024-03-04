@@ -1,4 +1,4 @@
-package phishin
+package cli
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 func printJSON(w io.Writer, data any) error {
     b, err := json.MarshalIndent(&data, "", "  ")
     if err != nil {
-        return err
+        return fmt.Errorf("unable to convert data to bytes: %w", err)
     }
     fmt.Fprintln(w, string(b))
     return nil
@@ -56,6 +56,7 @@ func prettyPrintEra(w io.Writer, e EraOutput) error {
     return err
 }
 
+// Year is a convenience struct to hold the year data in the API response.
 type Year struct {
     Date string `json:"date"`
     ShowCount int `json:"show_count"`
@@ -88,6 +89,7 @@ type YearOutput struct {
     Shows         ShowsOutput `json:"shows"`
 }
 
+// Show is a convenience struct to hold the show data in the API response.
 type Show struct {
     ID         int    `json:"id"`
     Date       string `json:"date"`
@@ -107,6 +109,7 @@ type Show struct {
     UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Track is a convenience struct to hold the track data in the API response.
 type Track struct {
     ID                int         `json:"id"`
     ShowID            int         `json:"show_id"`
@@ -128,12 +131,14 @@ type Track struct {
     UpdatedAt     time.Time `json:"updated_at"`
 }
 
+// Tag is a convenience struct to hold the tag data in the API response.
 type Tag struct {
     Name           string      `json:"name"`
     Group          string      `json:"group"`
     Notes          string `json:"notes"`
 }
 
+// trueAsYes is a type so we can print "yes" if a bool is true
 type trueAsYes bool
 
 func (s trueAsYes) String() string {
@@ -154,6 +159,7 @@ func convertMillisecondToConcertDuration(ms int64) string {
     return fmt.Sprintf("%dm %ds", t.Minute(), t.Second())
 }
 
+// Song is a convenience struct to hold the song data in the API response.
 type Song struct {
     ID          int       `json:"id"`
     Slug        string    `json:"slug"`
@@ -182,13 +188,13 @@ type SongsOutput struct {
 }
 
 func prettyPrintSongs(tw *tabwriter.Writer, songs SongsOutput) error {
-    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", songs.TotalEntries, songs.TotalPages, songs.CurrentPage)
-    fmt.Fprintln(tw)
     fmt.Fprintln(tw, "Title:\tPhish Original:\tOriginal Artist:\tTracksCount")
     for _, s := range songs.Songs {
         orig := trueAsYes(s.Original)
         fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", s.Title, orig, s.Artist, s.TracksCount)
     }
+    fmt.Fprintln(tw)
+    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", songs.TotalEntries, songs.TotalPages, songs.CurrentPage)
     return tw.Flush()
 }
 
@@ -205,7 +211,7 @@ type SongOutput struct {
     Tracks      []TrackOutput `json:"tracks"`
 }
 
-func convertToSongOutput(song Song) SongOutput {
+func convertSongToSongOutput(song Song) SongOutput {
 	o := SongOutput{
 		ID: song.ID,
 		Title: song.Title,
@@ -213,7 +219,7 @@ func convertToSongOutput(song Song) SongOutput {
 		Artist: song.Artist,
 		TracksCount: song.TracksCount,
 	}
-	tracks := convertToTracksOutput(song.Tracks)
+	tracks := convertTracksToTracksOutput(song.Tracks)
 	o.Tracks = tracks.Tracks
 	return o
 }
@@ -230,6 +236,7 @@ func prettyPrintSong(tw *tabwriter.Writer, song SongOutput) error {
     return tw.Flush()
 }
 
+// Tour is a convenience struct to hold the tour data in the API response.
 type Tour struct {
     ID         int    `json:"id"`
     Name       string `json:"name"`
@@ -297,12 +304,12 @@ type VenuesOutput struct {
 }
 
 func prettyPrintVenues(tw *tabwriter.Writer, venues VenuesOutput) error {
-    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", venues.TotalEntries, venues.TotalPages, venues.CurrentPage)
-    fmt.Fprintln(tw)
     fmt.Fprintln(tw, "Venue:\tLocation:\tShow Count:")
     for _, v := range venues.Venues {
         fmt.Fprintf(tw, "%s\t%s\t%d\n", v.Name, v.Location, v.ShowsCount)
     }
+    fmt.Fprintln(tw)
+    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", venues.TotalEntries, venues.TotalPages, venues.CurrentPage)
     return tw.Flush()
 }
 
@@ -317,7 +324,7 @@ type VenueOutput struct {
     ShowDates  []string  `json:"show_dates"`
 }
 
-func convertToVenueOutput(venue Venue) VenueOutput {
+func convertVenueToVenueOutput(venue Venue) VenueOutput {
 	return VenueOutput{
 		Name: venue.Name,
 		Location: venue.Location,
@@ -340,6 +347,7 @@ func prettyPrintVenue(tw *tabwriter.Writer, venue VenueOutput) error {
     return tw.Flush()
 }
 
+// Venue is a convenience struct to hold the venue data in the API response.
 type Venue struct {
     ID         int       `json:"id"`
     Slug       string    `json:"slug"`
@@ -371,10 +379,10 @@ type ShowsOutput struct {
     Shows []ShowOutput `json:"shows"`
 }
 
-func convertToShowsOutput(data []Show) ShowsOutput {
+func convertShowToShowsOutput(data []Show) ShowsOutput {
 	shows := make([]ShowOutput, 0, len(data))
 	for _, s := range data {
-		show := convertToShowOutput(s)
+		show := convertShowToShowOutput(s)
 		shows = append(shows, show)
 	}
 	return ShowsOutput{
@@ -383,10 +391,6 @@ func convertToShowsOutput(data []Show) ShowsOutput {
 }
 
 func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) error {
-    if shows.TotalEntries != 0 {
-        fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
-        fmt.Fprintln(tw)
-    }
     if verbose {
         fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
         for _, s := range shows.Shows {
@@ -394,11 +398,22 @@ func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) err
             r := trueAsYes(s.Remastered)
             fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Date, s.VenueName, s.Venue.Location, s.Duration, sbd, r)
         }
+        // the year details response prints a ShowsOutput but won't have any entries, for example
+        if shows.TotalEntries != 0 {
+            fmt.Fprintln(tw)
+            fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
+        }
+        
         return tw.Flush()
     }
     fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:")
     for _, s := range shows.Shows {
         fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", s.Date, s.VenueName, s.Venue.Location, s.Duration)
+    }
+    // the year details response prints a ShowsOutput but won't have any entries, for example
+    if shows.TotalEntries != 0 {
+        fmt.Fprintln(tw)
+        fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
     }
     return tw.Flush()
 }
@@ -419,7 +434,7 @@ type ShowOutput struct {
     Tracks     []TrackOutput `json:"tracks"`
 }
 
-func convertToShowOutput(show Show) ShowOutput {
+func convertShowToShowOutput(show Show) ShowOutput {
 	o := ShowOutput{
 		ID: show.ID,
 		Date: show.Date,
@@ -429,8 +444,8 @@ func convertToShowOutput(show Show) ShowOutput {
 		Tags: show.Tags,
 		VenueName: show.VenueName,
 	}
-	o.Venue = convertToVenueOutput(show.Venue)
-	tracks := convertToTracksOutput(show.Tracks)
+	o.Venue = convertVenueToVenueOutput(show.Venue)
+	tracks := convertTracksToTracksOutput(show.Tracks)
 	o.Tracks = tracks.Tracks
 	return o
 }
@@ -466,7 +481,7 @@ func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error 
             fmt.Fprintf(tw, "%s\n", tagInfo)
             fmt.Fprintln(tw)
         }
-        // should always have tracks but check
+        // should always have tracks but worth a check
         if len(show.Tracks) == 0 {
             return tw.Flush()
         }
@@ -489,7 +504,7 @@ func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error 
     fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
     fmt.Fprintf(tw, "%s\t%s\t%s\n", show.Date, show.VenueName, show.Venue.Location)
     fmt.Fprintln(tw)
-    // should always have tracks but check
+    // should always have tracks but worth a check
     if len(show.Tracks) == 0 {
         return tw.Flush()
     }
@@ -531,23 +546,23 @@ type TracksOutput struct {
     Tracks []TrackOutput `json:"tracks"`
 }
 
-func convertToTracksOutput(data []Track) TracksOutput {
+func convertTracksToTracksOutput(data []Track) TracksOutput {
 	tracks := make([]TrackOutput, 0, len(data))
 	for _, t := range data {
-		tracks = append(tracks, convertToTrackOutput(t))
+		tracks = append(tracks, convertTrackToTrackOutput(t))
 	}
 	return TracksOutput{
 		Tracks: tracks,
 	}
 }
 
-func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {
-    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page:%d\n", tracks.TotalEntries, tracks.TotalPages, tracks.CurrentPage)
-    fmt.Fprintln(tw)
-    fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tTitle:\tMp3")
+func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {  
+    fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tTitle:\tMp3:")
     for _, t := range tracks.Tracks {
         fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.ShowDate, t.VenueName, t.VenueLocation, t.Title, t.Mp3)
     }
+    fmt.Fprintln(tw)
+    fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", tracks.TotalEntries, tracks.TotalPages, tracks.CurrentPage)
     return tw.Flush()
 }
 
@@ -567,7 +582,7 @@ type TrackOutput struct {
     Mp3           string    `json:"mp3"`
 }
 
-func convertToTrackOutput(track Track) TrackOutput {
+func convertTrackToTrackOutput(track Track) TrackOutput {
 	return TrackOutput{
 		ID: track.ID,               
 		ShowDate: track.ShowDate,
@@ -595,6 +610,8 @@ func prettyPrintTrack(tw *tabwriter.Writer, track TrackOutput) error {
     return tw.Flush()
 }
 
+// TagListItem is a convenience struct to hold the tag data in the API response
+// for the /tags endpoint.
 type TagListItem struct {
     ID          int       `json:"id"`
     Name        string    `json:"name"`
@@ -672,6 +689,7 @@ type SearchResponse struct {
     } `json:"data"`
 }
 
+// TrackTag is a convenience struct to hold the tag data found in Tracks data.
 type TrackTag struct {
     ID             int         `json:"id"`
     TrackID        int         `json:"track_id"`
