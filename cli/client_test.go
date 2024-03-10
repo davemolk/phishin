@@ -134,7 +134,7 @@ func TestFromArgs(t *testing.T) {
 			}
 		})
 		t.Run("eras no sort", func(t *testing.T) {
-			if err := c.fromArgs([]string{"eras", "-d", "asc"}); err != nil {
+			if err := c.fromArgs([]string{"eras", "-dir", "asc"}); err != nil {
 				t.Errorf("wanted nil, got %v", err)
 			}
 			if len(c.Parameters) != 0 {
@@ -142,7 +142,7 @@ func TestFromArgs(t *testing.T) {
 			}
 		})
 		t.Run("tours no sort", func(t *testing.T) {
-			if err := c.fromArgs([]string{"tours", "-d", "asc"}); err != nil {
+			if err := c.fromArgs([]string{"tours", "-dir", "asc"}); err != nil {
 				t.Errorf("wanted nil, got %v", err)
 			}
 			if len(c.Parameters) != 0 {
@@ -150,7 +150,7 @@ func TestFromArgs(t *testing.T) {
 			}
 		})
 		t.Run("tags no sort", func(t *testing.T) {
-			if err := c.fromArgs([]string{"tags", "-d", "asc"}); err != nil {
+			if err := c.fromArgs([]string{"tags", "-dir", "asc"}); err != nil {
 				t.Errorf("wanted nil, got %v", err)
 			}
 			if len(c.Parameters) != 0 {
@@ -241,14 +241,14 @@ func TestFromArgs(t *testing.T) {
 		c.Parameters = nil
 	})
 	t.Run("sort directions other than asc and desc are ignored", func(t *testing.T) {
-		if err := c.fromArgs([]string{"venues", "-d", "phish"}); err != nil {
+		if err := c.fromArgs([]string{"venues", "-dir", "phish"}); err != nil {
 			t.Errorf("wanted nil, got %v", err)
 		}
 		if len(c.Parameters) != 0 {
 			t.Errorf("got %d wanted 0", len(c.Parameters))
 		}
 		t.Run("accepts asc", func(t *testing.T) {
-			if err := c.fromArgs([]string{"venues", "-d", "asc"}); err != nil {
+			if err := c.fromArgs([]string{"venues", "-dir", "asc"}); err != nil {
 				t.Errorf("wanted nil, got %v", err)
 			}
 			if len(c.Parameters) != 1 {

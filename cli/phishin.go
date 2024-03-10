@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 )
 
-// todo finish
-const usage = `usage: phishin <command> [<flags>]
-    phishin is a cli client for https://phish.in/ (see https://phish.in/api-docs for more details).
+const usage = `usage: phishin <endpoint argument> [<flags>]
+    	phishin is a cli client for https://phish.in/ (see https://phish.in/api-docs for more details).
 
-request the 3 most recent shows like so:
+request the 3 most recent shows like this:
 	phishin shows -pp 3 -p 1 --sort-attr date --sort-dir desc
 
 outputs the following:
@@ -23,11 +23,11 @@ outputs the following:
 	Total Entries: 1760  Total Pages: 587  Result Page: 1
 
 getting started:
-	1) get an api key (info at https://phish.in/contact-info).
-	2) set it as an environment variable (PHISHIN_API_KEY).
-	3) go phishin!
+	get an api key (info at https://phish.in/contact-info).
+	set it as an environment variable (PHISHIN_API_KEY).
+	go phishin!
 
-commands:
+supported arguments:
 	eras 			(-s as era, e.g. 3.0)
 	years 			(-s as year, e.g. 1994)
 	songs 			(-s as song slug or song-id, e.g. harry-hood)
@@ -41,28 +41,34 @@ commands:
 	search -s
 	tags 			(-s as tag slug or tag id, e.g. sbd)
 
-most commands allow an optional search query (-s/--search) to change the output from a list 
-of entities to details about a particular entity. see 'phishin endpoints' or 'phishin e' for 
-details about endpoints.
+arguments correspond to the phishin endpoints, and one (and only one) argument must be specified.
+most allow an optional search query (-s/--search) to change the output from a list of
+entities to details about a particular entity. behavior can be customized further via flags.
+
+note: the two exceptions to the above are 'phishin help'/'phishin h' and 'phishin endpoint'/
+'phishin e'.
 
 general flags:
--s/--search		search query, format depends on endpoint
+-s/--search		search query, format depends on the specific endpoint
 --debug			print the url that is being sent to the phishin server
 
 list-related flags:
--d/--sort-dir	direction to sort in. options are asc or desc
--a/--sort-attr	attribute to sort on (e.g. name, date)
--pp/--per-page	number of results to list per page (default is 20)
--p/--page	which page of results to display (default is 1)
--t/--tag	filter results by a specific tag (applicable for /tracks and /shows)
+-d/--sort-dir		direction to sort in. options are asc or desc
+-a/--sort-attr		attribute to sort on (e.g. name, date)
+-pp/--per-page		number of results to list per page (default is 20)
+-p/--page		which page of results to display (default is 1)
+-t/--tag		filter results by a specific tag (applicable for /tracks and /shows)
+
+
+note: list-related flags are supported for /shows, /songs, /tracks, and /venues. they will
+be ignored if you include them for other commands.
 
 output-related flags:
--o/--output
--v/--verbose
+-o/--output		options are json or text, default to text
+-v/--verbose 		include extra information in output (not supported in all routes)
 `
 
 const endpointList = `
-
 supported endpoints:
 
 /eras
@@ -108,18 +114,18 @@ phishin eras -s 2.0
 see https://phish.in/api-docs for more details`
 
 const (
-	erasPath = "eras"
-	yearsPath = "years"
-	songsPath = "songs"
-	toursPath = "tours"
-	venuesPath = "venues"
-	showsPath = "shows"
-	showOnDatePath = "show-on-date"
+	erasPath           = "eras"
+	yearsPath          = "years"
+	songsPath          = "songs"
+	toursPath          = "tours"
+	venuesPath         = "venues"
+	showsPath          = "shows"
+	showOnDatePath     = "show-on-date"
 	showsDayOfYearPath = "shows-on-day-of-year"
-	randomShowPath = "random-show"
-	tracksPath = "tracks"
-	searchPath = "search"
-	tagsPath = "tags"
+	randomShowPath     = "random-show"
+	tracksPath         = "tracks"
+	searchPath         = "search"
+	tagsPath           = "tags"
 )
 
 func Run(args []string) int {
@@ -148,151 +154,29 @@ func Run(args []string) int {
 		return 1
 	}
 
-	// todo maybe stick url format here and pass url in?
-	ctx := context.Background()
+	if c.Download {
+		if err := os.Mkdir(c.Query, 0755); err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("unable to create directory for downloaded files: %w", err))
+			return 1
+		}
+	}
+
+	// get context at this point?
+	// customize? or not...
+	c.ErrGroup.SetLimit(4)
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer cancel()
 
 	path := args[0]
-	switch path {
-	case erasPath:
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintEra(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("era details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintEras(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, "eras list failure: %w", err)
-			return 1
-		}
-		return 0
-	case yearsPath:
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintYear(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("year details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintYears(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("years list failure: %w", err))
-			return 1
-		}
-		return 0
-	case songsPath:
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintSong(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("song details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintSongs(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("songs list failure: %w", err))
-			return 1
-		}
-		return 0
-	case toursPath:
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintTour(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("tour details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintTours(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("tours list failure: %w", err))
-			return 1
-		}
-		return 0
-	case "venues":
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintVenue(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("venue details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintVenues(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("venues list failure: %w", err))
-			return 1
-		}
-		return 0
-	case showsPath:
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintShow(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("show details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintShows(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("shows list failure: %w", err))
-			return 1
-		}
-		return 0
-	case showOnDatePath:
-		url := c.FormatURL(path) 
-		if err := c.getAndPrintShow(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("show details failure: %w", err))
-			return 1
-		}
-		return 0
-	case showsDayOfYearPath:
-		url := c.FormatURL(path)
-		if err := c.getAndPrintShows(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("shows list failure: %w", err))
-			return 1
-		}
-		return 0
-	case randomShowPath:
-		url := c.FormatURL(path)
-		if err := c.getAndPrintShow(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("show details failure: %w", err))
-			return 1
-		}
-		return 0
-	case tracksPath:
-		url := c.FormatURL(path) 
-		if c.Query != "" {
-			if err := c.getAndPrintTrack(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("track details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintTracks(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("tracks list failure: %w", err))
-			return 1
-		}
-		return 0
-	case searchPath:
-		url := c.FormatURL(path) 
-		if err := c.Get(ctx, url, nil); err != nil {
-			return 1
-		}
-	// case "playlists":
-		
-	case tagsPath:
-		url := c.FormatURL(path)
-		if c.Query != "" {
-			if err := c.getAndPrintTag(ctx, url); err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Errorf("tag details failure: %w", err))
-				return 1
-			}
-			return 0
-		}
-		if err := c.getAndPrintTags(ctx, url); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("tags list failure: %w", err))
-			return 1
-		}
-		return 0
+	if err := c.run(ctx, path); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err := c.ErrGroup.Wait(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
 	}
 	return 0
 }
