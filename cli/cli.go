@@ -19,6 +19,162 @@ func printJSON(w io.Writer, data any) error {
 	return nil
 }
 
+// trueAsYes is a type so we can print "yes" if a bool is true
+type trueAsYes bool
+
+func (s trueAsYes) String() string {
+	if s {
+		return "yes"
+	}
+	return ""
+}
+
+func convertMillisecondToConcertDuration(ms int64) string {
+	var msInSecond int64 = 1000
+	var nsInSecond int64 = 1000000
+	t := time.Unix(ms/msInSecond, (ms%msInSecond)*nsInSecond).UTC()
+	// early shows, like 1983.12.02, are under an hour
+	if t.Hour() != 0 {
+		return fmt.Sprintf("%dh %dm", t.Hour(), t.Minute())
+	}
+	return fmt.Sprintf("%dm %ds", t.Minute(), t.Second())
+}
+
+////////////////////////
+/* Convenience Types */
+//////////////////////
+
+// Show is a convenience struct to hold the show data in the API response.
+type Show struct {
+	ID         int       `json:"id"`
+	Date       string    `json:"date"`
+	Duration   int       `json:"duration"`
+	Incomplete bool      `json:"incomplete"`
+	Sbd        bool      `json:"sbd"`
+	Remastered bool      `json:"remastered"`
+	Tags       []Tag     `json:"tags"`
+	TourID     int       `json:"tour_id"`
+	Venue      Venue     `json:"venue"`
+	VenueName  string    `json:"venue_name"`
+	TaperNotes string    `json:"taper_notes"`
+	LikesCount int       `json:"likes_count"`
+	VenueID    int       `json:"venue_id"`
+	Location   string    `json:"location"`
+	Tracks     []Track   `json:"tracks"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// Song is a convenience struct to hold the song data in the API response.
+type Song struct {
+	ID          int       `json:"id"`
+	Slug        string    `json:"slug"`
+	Title       string    `json:"title"`
+	Alias       string    `json:"alias"`
+	Original    bool      `json:"original"`
+	Artist      string    `json:"artist"`
+	Lyrics      string    `json:"lyrics"`
+	TracksCount int       `json:"tracks_count"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Tracks      []Track   `json:"tracks"`
+}
+
+// Tag is a convenience struct to hold the tag data in the API response.
+type Tag struct {
+	Name  string `json:"name"`
+	Group string `json:"group"`
+	Notes string `json:"notes"`
+}
+
+// TagListItem is a convenience struct to hold the tag data in the API response
+// for the /tags endpoint.
+type TagListItem struct {
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Group       string    `json:"group"`
+	Color       string    `json:"color"`
+	Priority    int       `json:"priority"`
+	Description string    `json:"description"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	ShowIds     []int     `json:"show_ids"`
+	TrackIds    []int     `json:"track_ids"`
+}
+
+// Tour is a convenience struct to hold the tour data in the API response.
+type Tour struct {
+	ID         int       `json:"id"`
+	Name       string    `json:"name"`
+	ShowsCount int       `json:"shows_count"`
+	Slug       string    `json:"slug"`
+	StartsOn   string    `json:"starts_on"`
+	EndsOn     string    `json:"ends_on"`
+	Shows      []Show    `json:"shows"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// Track is a convenience struct to hold the track data in the API response.
+type Track struct {
+	ID                int       `json:"id"`
+	ShowID            int       `json:"show_id"`
+	ShowDate          string    `json:"show_date"`
+	VenueName         string    `json:"venue_name"`
+	VenueLocation     string    `json:"venue_location"`
+	Title             string    `json:"title"`
+	Position          int       `json:"position"`
+	Duration          int       `json:"duration"`
+	JamStartsAtSecond int       `json:"jam_starts_at_second"`
+	Set               string    `json:"set"`
+	SetName           string    `json:"set_name"`
+	LikesCount        int       `json:"likes_count"`
+	Slug              string    `json:"slug"`
+	Tags              []Tag     `json:"tags"`
+	Mp3               string    `json:"mp3"`
+	WaveformImage     string    `json:"waveform_image"`
+	SongIds           []int     `json:"song_ids"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
+// TrackTag is a convenience struct to hold the tag data found in Tracks data.
+type TrackTag struct {
+	ID             int       `json:"id"`
+	TrackID        int       `json:"track_id"`
+	TagID          int       `json:"tag_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	Notes          string    `json:"notes"`
+	StartsAtSecond int       `json:"starts_at_second"`
+	EndsAtSecond   int       `json:"ends_at_second"`
+	Transcript     string    `json:"transcript"`
+}
+
+// Venue is a convenience struct to hold the venue data in the API response.
+type Venue struct {
+	ID         int       `json:"id"`
+	Slug       string    `json:"slug"`
+	Name       string    `json:"name"`
+	OtherNames []string  `json:"other_names"`
+	Latitude   float64   `json:"latitude"`
+	Longitude  float64   `json:"longitude"`
+	Location   string    `json:"location"`
+	City       string    `json:"city"`
+	State      string    `json:"state"`
+	Country    string    `json:"country"`
+	ShowsCount int       `json:"shows_count"`
+	ShowDates  []string  `json:"show_dates"`
+	ShowIds    []int     `json:"show_ids"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// Year is a convenience struct to hold the year data in the API response.
+type Year struct {
+	Date      string `json:"date"`
+	ShowCount int    `json:"show_count"`
+}
+
+
+///////////
+/* Eras */
+/////////
+
 type ErasResponse struct {
 	Data struct {
 		One   []string `json:"1.0"`
@@ -56,11 +212,9 @@ func prettyPrintEra(w io.Writer, e EraOutput) error {
 	return err
 }
 
-// Year is a convenience struct to hold the year data in the API response.
-type Year struct {
-	Date      string `json:"date"`
-	ShowCount int    `json:"show_count"`
-}
+////////////
+/* Years */
+//////////
 
 type YearsResponse struct {
 	TotalEntries int    `json:"total_entries"`
@@ -89,90 +243,6 @@ type YearOutput struct {
 	Shows ShowsOutput `json:"shows"`
 }
 
-// Show is a convenience struct to hold the show data in the API response.
-type Show struct {
-	ID         int       `json:"id"`
-	Date       string    `json:"date"`
-	Duration   int       `json:"duration"`
-	Incomplete bool      `json:"incomplete"`
-	Sbd        bool      `json:"sbd"`
-	Remastered bool      `json:"remastered"`
-	Tags       []Tag     `json:"tags"`
-	TourID     int       `json:"tour_id"`
-	Venue      Venue     `json:"venue"`
-	VenueName  string    `json:"venue_name"`
-	TaperNotes string    `json:"taper_notes"`
-	LikesCount int       `json:"likes_count"`
-	VenueID    int       `json:"venue_id"`
-	Location   string    `json:"location"`
-	Tracks     []Track   `json:"tracks"`
-	UpdatedAt  time.Time `json:"updated_at"`
-}
-
-// Track is a convenience struct to hold the track data in the API response.
-type Track struct {
-	ID                int       `json:"id"`
-	ShowID            int       `json:"show_id"`
-	ShowDate          string    `json:"show_date"`
-	VenueName         string    `json:"venue_name"`
-	VenueLocation     string    `json:"venue_location"`
-	Title             string    `json:"title"`
-	Position          int       `json:"position"`
-	Duration          int       `json:"duration"`
-	JamStartsAtSecond int       `json:"jam_starts_at_second"`
-	Set               string    `json:"set"`
-	SetName           string    `json:"set_name"`
-	LikesCount        int       `json:"likes_count"`
-	Slug              string    `json:"slug"`
-	Tags              []Tag     `json:"tags"`
-	Mp3               string    `json:"mp3"`
-	WaveformImage     string    `json:"waveform_image"`
-	SongIds           []int     `json:"song_ids"`
-	UpdatedAt         time.Time `json:"updated_at"`
-}
-
-// Tag is a convenience struct to hold the tag data in the API response.
-type Tag struct {
-	Name  string `json:"name"`
-	Group string `json:"group"`
-	Notes string `json:"notes"`
-}
-
-// trueAsYes is a type so we can print "yes" if a bool is true
-type trueAsYes bool
-
-func (s trueAsYes) String() string {
-	if s {
-		return "yes"
-	}
-	return ""
-}
-
-func convertMillisecondToConcertDuration(ms int64) string {
-	var msInSecond int64 = 1000
-	var nsInSecond int64 = 1000000
-	t := time.Unix(ms/msInSecond, (ms%msInSecond)*nsInSecond).UTC()
-	// early shows, like 1983.12.02, are under an hour
-	if t.Hour() != 0 {
-		return fmt.Sprintf("%dh %dm", t.Hour(), t.Minute())
-	}
-	return fmt.Sprintf("%dm %ds", t.Minute(), t.Second())
-}
-
-// Song is a convenience struct to hold the song data in the API response.
-type Song struct {
-	ID          int       `json:"id"`
-	Slug        string    `json:"slug"`
-	Title       string    `json:"title"`
-	Alias       string    `json:"alias"`
-	Original    bool      `json:"original"`
-	Artist      string    `json:"artist"`
-	Lyrics      string    `json:"lyrics"`
-	TracksCount int       `json:"tracks_count"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Tracks      []Track   `json:"tracks"`
-}
-
 type SongsResponse struct {
 	TotalEntries int    `json:"total_entries"`
 	TotalPages   int    `json:"total_pages"`
@@ -194,12 +264,27 @@ func prettyPrintSongs(tw *tabwriter.Writer, songs SongsOutput) error {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", s.Title, orig, s.Artist, s.TracksCount)
 	}
 	fmt.Fprintln(tw)
-	fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", songs.TotalEntries, songs.TotalPages, songs.CurrentPage)
+	if songs.TotalEntries != 0 {
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", songs.TotalEntries, songs.TotalPages, songs.CurrentPage)
+	}
 	return tw.Flush()
 }
 
 type SongResponse struct {
 	Data Song `json:"data"`
+}
+
+func convertSongToOutput(song Song) SongOutput {
+	o := SongOutput{
+		ID:          song.ID,
+		Title:       song.Title,
+		Original:    song.Original,
+		Artist:      song.Artist,
+		TracksCount: song.TracksCount,
+	}
+	tracks := convertTracksToOutput(song.Tracks)
+	o.Tracks = tracks.Tracks
+	return o
 }
 
 type SongOutput struct {
@@ -209,19 +294,6 @@ type SongOutput struct {
 	Artist      string        `json:"artist"`
 	TracksCount int           `json:"tracks_count"`
 	Tracks      []TrackOutput `json:"tracks"`
-}
-
-func convertSongToSongOutput(song Song) SongOutput {
-	o := SongOutput{
-		ID:          song.ID,
-		Title:       song.Title,
-		Original:    song.Original,
-		Artist:      song.Artist,
-		TracksCount: song.TracksCount,
-	}
-	tracks := convertTracksToTracksOutput(song.Tracks)
-	o.Tracks = tracks.Tracks
-	return o
 }
 
 func prettyPrintSong(tw *tabwriter.Writer, song SongOutput) error {
@@ -236,20 +308,24 @@ func prettyPrintSong(tw *tabwriter.Writer, song SongOutput) error {
 	return tw.Flush()
 }
 
-// Tour is a convenience struct to hold the tour data in the API response.
-type Tour struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	ShowsCount int       `json:"shows_count"`
-	Slug       string    `json:"slug"`
-	StartsOn   string    `json:"starts_on"`
-	EndsOn     string    `json:"ends_on"`
-	Shows      []Show    `json:"shows"`
-	UpdatedAt  time.Time `json:"updated_at"`
-}
-
 type ToursResponse struct {
 	Data []Tour `json:"data"`
+}
+
+func convertToursToOutput(tours []Tour) ToursOutput {
+	tt := make([]TourOutput, 0, len(tours))
+	for _, t := range tours {
+		tour := TourOutput{
+			Name:       t.Name,
+			ShowsCount: t.ShowsCount,
+			StartsOn:   t.StartsOn,
+			EndsOn:     t.EndsOn,
+		}
+		shows := convertShowsToOutput(t.Shows)
+		tour.Shows = shows.Shows
+		tt = append(tt, tour)
+	}
+	return ToursOutput{Tours: tt}
 }
 
 type ToursOutput struct {
@@ -309,7 +385,9 @@ func prettyPrintVenues(tw *tabwriter.Writer, venues VenuesOutput) error {
 		fmt.Fprintf(tw, "%s\t%s\t%d\n", v.Name, v.Location, v.ShowsCount)
 	}
 	fmt.Fprintln(tw)
-	fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", venues.TotalEntries, venues.TotalPages, venues.CurrentPage)
+	if venues.CurrentPage != 0 {
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", venues.TotalEntries, venues.TotalPages, venues.CurrentPage)
+	}
 	return tw.Flush()
 }
 
@@ -317,20 +395,20 @@ type VenueResponse struct {
 	Data Venue `json:"data"`
 }
 
-type VenueOutput struct {
-	Name       string   `json:"name"`
-	Location   string   `json:"location"`
-	ShowsCount int      `json:"shows_count"`
-	ShowDates  []string `json:"show_dates"`
-}
-
-func convertVenueToVenueOutput(venue Venue) VenueOutput {
+func convertVenueToOutput(venue Venue) VenueOutput {
 	return VenueOutput{
 		Name:       venue.Name,
 		Location:   venue.Location,
 		ShowsCount: venue.ShowsCount,
 		ShowDates:  venue.ShowDates,
 	}
+}
+
+type VenueOutput struct {
+	Name       string   `json:"name"`
+	Location   string   `json:"location"`
+	ShowsCount int      `json:"shows_count"`
+	ShowDates  []string `json:"show_dates"`
 }
 
 func prettyPrintVenue(tw *tabwriter.Writer, venue VenueOutput) error {
@@ -347,24 +425,6 @@ func prettyPrintVenue(tw *tabwriter.Writer, venue VenueOutput) error {
 	return tw.Flush()
 }
 
-// Venue is a convenience struct to hold the venue data in the API response.
-type Venue struct {
-	ID         int       `json:"id"`
-	Slug       string    `json:"slug"`
-	Name       string    `json:"name"`
-	OtherNames []string  `json:"other_names"`
-	Latitude   float64   `json:"latitude"`
-	Longitude  float64   `json:"longitude"`
-	Location   string    `json:"location"`
-	City       string    `json:"city"`
-	State      string    `json:"state"`
-	Country    string    `json:"country"`
-	ShowsCount int       `json:"shows_count"`
-	ShowDates  []string  `json:"show_dates"`
-	ShowIds    []int     `json:"show_ids"`
-	UpdatedAt  time.Time `json:"updated_at"`
-}
-
 type ShowsResponse struct {
 	TotalEntries int    `json:"total_entries"`
 	TotalPages   int    `json:"total_pages"`
@@ -372,22 +432,22 @@ type ShowsResponse struct {
 	Data         []Show `json:"data"`
 }
 
-type ShowsOutput struct {
-	TotalEntries int          `json:"total_entries"`
-	TotalPages   int          `json:"total_pages"`
-	CurrentPage  int          `json:"current_page"`
-	Shows        []ShowOutput `json:"shows"`
-}
-
-func convertShowToShowsOutput(data []Show) ShowsOutput {
+func convertShowsToOutput(data []Show) ShowsOutput {
 	shows := make([]ShowOutput, 0, len(data))
 	for _, s := range data {
-		show := convertShowToShowOutput(s)
+		show := convertShowToOutput(s)
 		shows = append(shows, show)
 	}
 	return ShowsOutput{
 		Shows: shows,
 	}
+}
+
+type ShowsOutput struct {
+	TotalEntries int          `json:"total_entries"`
+	TotalPages   int          `json:"total_pages"`
+	CurrentPage  int          `json:"current_page"`
+	Shows        []ShowOutput `json:"shows"`
 }
 
 func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) error {
@@ -403,7 +463,6 @@ func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) err
 			fmt.Fprintln(tw)
 			fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
 		}
-
 		return tw.Flush()
 	}
 	fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:")
@@ -422,19 +481,7 @@ type ShowResponse struct {
 	Data Show `json:"data"`
 }
 
-type ShowOutput struct {
-	ID         int           `json:"id"`
-	Date       string        `json:"date"`
-	Duration   string        `json:"duration"`
-	Sbd        bool          `json:"sbd"`
-	Remastered bool          `json:"remastered"`
-	Tags       []Tag         `json:"tags"`
-	Venue      VenueOutput   `json:"venue"`
-	VenueName  string        `json:"venue_name"`
-	Tracks     []TrackOutput `json:"tracks"`
-}
-
-func convertShowToShowOutput(show Show) ShowOutput {
+func convertShowToOutput(show Show) ShowOutput {
 	o := ShowOutput{
 		ID:         show.ID,
 		Date:       show.Date,
@@ -444,8 +491,8 @@ func convertShowToShowOutput(show Show) ShowOutput {
 		Tags:       show.Tags,
 		VenueName:  show.VenueName,
 	}
-	o.Venue = convertVenueToVenueOutput(show.Venue)
-	tracks := convertTracksToTracksOutput(show.Tracks)
+	o.Venue = convertVenueToOutput(show.Venue)
+	tracks := convertTracksToOutput(show.Tracks)
 	o.Tracks = tracks.Tracks
 	return o
 }
@@ -466,6 +513,18 @@ func convertTagsToString(tags []Tag) string {
 		}
 	}
 	return strings.Join(tt, ", ")
+}
+
+type ShowOutput struct {
+	ID         int           `json:"id"`
+	Date       string        `json:"date"`
+	Duration   string        `json:"duration"`
+	Sbd        bool          `json:"sbd"`
+	Remastered bool          `json:"remastered"`
+	Tags       []Tag         `json:"tags"`
+	Venue      VenueOutput   `json:"venue"`
+	VenueName  string        `json:"venue_name"`
+	Tracks     []TrackOutput `json:"tracks"`
 }
 
 func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error {
@@ -538,21 +597,21 @@ type TracksResponse struct {
 	Data         []Track `json:"data"`
 }
 
+func convertTracksToOutput(data []Track) TracksOutput {
+	tracks := make([]TrackOutput, 0, len(data))
+	for _, t := range data {
+		tracks = append(tracks, convertTrackToOutput(t))
+	}
+	return TracksOutput{
+		Tracks: tracks,
+	}
+}
+
 type TracksOutput struct {
 	TotalEntries int           `json:"total_entries"`
 	TotalPages   int           `json:"total_pages"`
 	CurrentPage  int           `json:"current_page"`
 	Tracks       []TrackOutput `json:"tracks"`
-}
-
-func convertTracksToTracksOutput(data []Track) TracksOutput {
-	tracks := make([]TrackOutput, 0, len(data))
-	for _, t := range data {
-		tracks = append(tracks, convertTrackToTrackOutput(t))
-	}
-	return TracksOutput{
-		Tracks: tracks,
-	}
 }
 
 func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {
@@ -561,12 +620,28 @@ func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {
 		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.ShowDate, t.VenueName, t.VenueLocation, t.Title, t.Mp3)
 	}
 	fmt.Fprintln(tw)
-	fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", tracks.TotalEntries, tracks.TotalPages, tracks.CurrentPage)
+	if tracks.TotalEntries != 0 {
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", tracks.TotalEntries, tracks.TotalPages, tracks.CurrentPage)
+	}
 	return tw.Flush()
 }
 
 type TrackResponse struct {
 	Data Track `json:"data"`
+}
+
+func convertTrackToOutput(track Track) TrackOutput {
+	return TrackOutput{
+		ID:            track.ID,
+		ShowDate:      track.ShowDate,
+		VenueName:     track.VenueName,
+		VenueLocation: track.VenueLocation,
+		Title:         track.Title,
+		Duration:      convertMillisecondToConcertDuration(int64(track.Duration)),
+		SetName:       track.SetName,
+		Tags:          track.Tags,
+		Mp3:           track.Mp3,
+	}
 }
 
 type TrackOutput struct {
@@ -581,20 +656,6 @@ type TrackOutput struct {
 	Mp3           string `json:"mp3"`
 }
 
-func convertTrackToTrackOutput(track Track) TrackOutput {
-	return TrackOutput{
-		ID:            track.ID,
-		ShowDate:      track.ShowDate,
-		VenueName:     track.VenueName,
-		VenueLocation: track.VenueLocation,
-		Title:         track.Title,
-		Duration:      convertMillisecondToConcertDuration(int64(track.Duration)),
-		SetName:       track.SetName,
-		Tags:          track.Tags,
-		Mp3:           track.Mp3,
-	}
-}
-
 func prettyPrintTrack(tw *tabwriter.Writer, track TrackOutput) error {
 	fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tTitle:\tDuration\tSet\tMp3")
 	fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", track.ID, track.ShowDate, track.VenueName, track.VenueLocation, track.Title, track.Duration, track.SetName, track.Mp3)
@@ -607,21 +668,6 @@ func prettyPrintTrack(tw *tabwriter.Writer, track TrackOutput) error {
 		}
 	}
 	return tw.Flush()
-}
-
-// TagListItem is a convenience struct to hold the tag data in the API response
-// for the /tags endpoint.
-type TagListItem struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Group       string    `json:"group"`
-	Color       string    `json:"color"`
-	Priority    int       `json:"priority"`
-	Description string    `json:"description"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	ShowIds     []int     `json:"show_ids"`
-	TrackIds    []int     `json:"track_ids"`
 }
 
 type TagsResponse struct {
@@ -642,6 +688,17 @@ func prettyPrintTags(tw *tabwriter.Writer, tags TagsOutput) error {
 
 type TagResponse struct {
 	Data TagListItem `json:"data"`
+}
+
+func convertTagListItemToOutput(t TagListItem) TagListItemOutput {
+	o := TagListItemOutput{
+		Name:        t.Name,
+		Group:       t.Group,
+		Description: t.Description,
+		ShowIds:     t.ShowIds,
+		TrackIds:    t.TrackIds,
+	}
+	return o
 }
 
 type TagListItemOutput struct {
@@ -673,29 +730,172 @@ func prettyPrintTag(tw *tabwriter.Writer, tag TagListItemOutput) error {
 	return tw.Flush()
 }
 
-// wasn't able to get results for other fields
+// todo: confirm showtags format
 type SearchResponse struct {
 	Data struct {
-		ExactShow  Show          `json:"exact_show"`
-		OtherShows []Show        `json:"other_shows"`
-		ShowTags   []interface{} `json:"show_tags"`
-		Songs      []Song        `json:"songs"`
-		Tags       []TagListItem `json:"tags"`
-		Tours      []interface{} `json:"tours"`
-		TrackTags  []TrackTag    `json:"track_tags"`
-		Tracks     []interface{} `json:"tracks"`
-		Venues     []Venue       `json:"venues"`
-	} `json:"data"`
+		ExactShow  Show          `json:"exact_show,omitempty"`
+		OtherShows []Show        `json:"other_shows,omitempty"`
+		ShowTags   []interface{} `json:"show_tags,omitempty"`
+		Songs      []Song        `json:"songs,omitempty"`
+		Tags       []TagListItem `json:"tags,omitempty"`
+		Tours      []Tour `json:"tours,omitempty"`
+		TrackTags  []TrackTag    `json:"track_tags,omitempty"`
+		Tracks     []Track `json:"tracks,omitempty"`
+		Venues     []Venue       `json:"venues,omitempty"`
+	} `json:"data,omitempty"`
 }
 
-// TrackTag is a convenience struct to hold the tag data found in Tracks data.
-type TrackTag struct {
+type TrackTagOutput struct {
 	ID             int       `json:"id"`
 	TrackID        int       `json:"track_id"`
 	TagID          int       `json:"tag_id"`
-	CreatedAt      time.Time `json:"created_at"`
 	Notes          string    `json:"notes"`
-	StartsAtSecond int       `json:"starts_at_second"`
-	EndsAtSecond   int       `json:"ends_at_second"`
 	Transcript     string    `json:"transcript"`
+}
+
+func prettyPrintTrackTags(tw *tabwriter.Writer, tags []TrackTagOutput) error {
+	fmt.Fprintln(tw, "ID:\tTrackID:\tTagID:\tNotes:\tTranscript:")
+	for _, tag := range tags {
+		fmt.Fprintf(tw, "%d\t%d\t%d\t%s\t%s\n", tag.ID, tag.TrackID, tag.TagID, tag.Notes, tag.Transcript)
+	}
+	return tw.Flush()
+}
+
+func convertSearchToSearchOutput(s SearchResponse) SearchOutput {
+	o := SearchOutput{}
+	if s.Data.ExactShow.ID != 0 {
+		show := convertShowToOutput(s.Data.ExactShow)
+		o.Results.ExactShow = &show
+	}
+	if len(s.Data.OtherShows) != 0 {
+		shows := convertShowsToOutput(s.Data.OtherShows)
+		o.Results.OtherShows = shows.Shows
+	}
+
+	// todo show tags
+	
+	if len(s.Data.Songs) != 0 {
+		songs := make([]SongOutput, 0, len(s.Data.Songs))
+		for _, song := range s.Data.Songs {
+			songs = append(songs, convertSongToOutput(song))
+		}
+		o.Results.Songs = songs
+	}
+	if len(s.Data.Tags) != 0 {
+		tags := make([]TagListItemOutput, 0, len(s.Data.Tags))
+		for _, tag := range s.Data.Tags {
+			tags = append(tags, convertTagListItemToOutput(tag))
+		}
+		o.Results.Tags = tags
+	}
+	if len(s.Data.Tours) != 0 {
+		tours := convertToursToOutput(s.Data.Tours)
+		o.Results.Tours = tours.Tours
+	}
+	if len(s.Data.TrackTags) != 0 {
+		tags := make([]TrackTagOutput, 0, len(s.Data.TrackTags))
+		for _, t := range s.Data.TrackTags {
+			tags = append(tags, TrackTagOutput{
+				ID: t.ID,
+				TrackID: t.TrackID,
+				TagID: t.TagID,
+				Notes: t.Notes,
+				Transcript: t.Transcript,
+			})
+		}
+		o.Results.TrackTags = tags
+	}	
+	if len(s.Data.Tracks) != 0 {
+		tracks := convertTracksToOutput(s.Data.Tracks)
+		o.Results.Tracks = tracks.Tracks
+	}
+	if len(s.Data.Venues) != 0 {
+		venues := make([]VenueOutput, 0, len(s.Data.Venues))
+		for _, venue := range s.Data.Venues {
+			venues = append(venues, convertVenueToOutput(venue))
+		}
+		o.Results.Venues = venues
+	}
+	return o
+}
+
+type SearchOutput struct {
+	Results struct {
+		ExactShow *ShowOutput `json:"exact_show,omitempty"`
+		OtherShows []ShowOutput        `json:"other_shows,omitempty"`
+		ShowTags   []any `json:"show_tags,omitempty"`
+		Songs      []SongOutput        `json:"songs,omitempty"`
+		Tags       []TagListItemOutput `json:"tags,omitempty"`
+		Tours      []TourOutput `json:"tours,omitempty"`
+		TrackTags  []TrackTagOutput    `json:"track_tags,omitempty"`
+		Tracks     []TrackOutput `json:"tracks,omitempty"`
+		Venues     []VenueOutput       `json:"venues,omitempty"`
+	} `json:"results"`
+}
+
+func prettyPrintSearch(tw *tabwriter.Writer, search SearchOutput) error {
+	fmt.Fprintln(tw, "search results:")
+	fmt.Fprintln(tw)
+	if search.Results.ExactShow != nil {
+		fmt.Fprintln(tw, "exact show results:")
+		if err := prettyPrintShow(tw, *search.Results.ExactShow, true); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.OtherShows) != 0 {
+		fmt.Fprintln(tw, "shows results:")
+		if err := prettyPrintShows(tw, ShowsOutput{Shows: search.Results.OtherShows}, true); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.ShowTags) != 0 {
+		fmt.Fprintln(tw, "show tag results:")
+		//
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.Songs) != 0 {
+		fmt.Fprintln(tw, "song results:")
+		if err := prettyPrintSongs(tw, SongsOutput{Songs: search.Results.Songs}); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.Tags) != 0 {
+		fmt.Fprintln(tw, "tag results:")
+		if err := prettyPrintTags(tw, TagsOutput{Tags: search.Results.Tags}); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.Tours) != 0 {
+		fmt.Fprintln(tw, "tour results:")
+		if err := prettyPrintTours(tw, ToursOutput{Tours: search.Results.Tours}); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.TrackTags) != 0 {
+		fmt.Fprintln(tw, "track tag results:")
+		if err := prettyPrintTrackTags(tw, search.Results.TrackTags); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.Tracks) != 0 {
+		fmt.Fprintln(tw, "track results:")
+		if err := prettyPrintTracks(tw, TracksOutput{Tracks: search.Results.Tracks}); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	if len(search.Results.Venues) != 0 {
+		fmt.Fprintln(tw, "venue results:")
+		if err := prettyPrintVenues(tw, VenuesOutput{Venues: search.Results.Venues}); err != nil {
+			return err
+		}
+		fmt.Fprintln(tw)
+	}
+	return nil
 }

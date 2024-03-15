@@ -59,13 +59,32 @@ list-related flags:
 -p/--page		which page of results to display (default is 1)
 -t/--tag		filter results by a specific tag (applicable for /tracks and /shows)
 
-
 note: list-related flags are supported for /shows, /songs, /tracks, and /venues. they will
 be ignored if you include them for other commands.
 
 output-related flags:
 -o/--output		options are json or text, default to text
 -v/--verbose 		include extra information in output (not supported in all routes)
+
+help with searching:
+searching for a date? enter it like "12/31/95" or "1995-12-31"
+searching for a day of the year (like Halloween)? search for an instance like "10/31/94"
+searching for a venue? enter part of its name (or past names) or location like "msg" or "new york"
+searching for a song? enter all or part of its name like "also sprach" or "birdwatcher"
+searching for a tour? enter all or part of its name like "summer" or "1995"
+searching for a tag? enter all or part of its name or description like "sbd" or "soundboard"
+searching for a tag instance? enter part of its notes like "vaccuum solo"
+`
+
+const searchTips = `
+help with searching:
+searching for a date? enter it like "12/31/95" or "1995-12-31"
+searching for a day of the year (like Halloween)? search for an instance like "10/31/94"
+searching for a venue? enter part of its name (or past names) or location like "msg" or "new york"
+searching for a song? enter all or part of its name like "also sprach" or "birdwatcher"
+searching for a tour? enter all or part of its name like "summer" or "1995"
+searching for a tag? enter all or part of its name or description like "sbd" or "soundboard"
+searching for a tag instance? enter part of its notes like "vaccuum solo"
 `
 
 const endpointList = `
@@ -164,8 +183,6 @@ func Run(args []string) int {
 	// get context at this point?
 	// customize? or not...
 	c.ErrGroup.SetLimit(4)
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
 

@@ -168,7 +168,7 @@ func (c *Client) Get(ctx context.Context, url string, data any) error {
 	req.Header.Set("Accept", "application/json")
 	authToken := c.APIKey
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authToken))
-	// todo add repo as ua header
+	req.Header.Set("User-Agent", "https://github.com/davemolk/phishin")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("error making request: %w", err)
@@ -286,9 +286,8 @@ func (c *Client) run(ctx context.Context, path string) error {
 		}
 		return nil
 	case searchPath:
-		// todo
-		if err := c.Get(ctx, url, nil); err != nil {
-			return err
+		if err := c.getAndPrintSearch(ctx, url); err != nil {
+			return fmt.Errorf("search failure: %w", err)
 		}
 		return nil
 	// case "playlists":
@@ -394,7 +393,7 @@ func (c *Client) getYear(ctx context.Context, url string) (ShowsOutput, error) {
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowsOutput{}, fmt.Errorf("unable to get year details: %w", err)
 	}
-	return convertShowToShowsOutput(resp.Data), nil
+	return convertShowsToOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintShows(ctx context.Context, url string) error {
@@ -413,7 +412,7 @@ func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowsOutput{}, fmt.Errorf("unable to get shows list: %w", err)
 	}
-	o := convertShowToShowsOutput(resp.Data)
+	o := convertShowsToOutput(resp.Data)
 	o.TotalEntries = resp.TotalEntries
 	o.TotalPages = resp.TotalPages
 	o.CurrentPage = resp.Page
@@ -437,12 +436,16 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 		return ShowOutput{}, fmt.Errorf("unable to get show details: %w", err)
 	}
 	if c.Download {
-		for _, t := range resp.Data.Tracks {
-			c.DownloadTrack(ctx, t.Mp3, t.Slug)
+		for i, t := range resp.Data.Tracks {
+			// start track number with 1, capture loop vars locally
+			i, t := i + 1, t
+			c.ErrGroup.Go(func() error {
+				fileName := fmt.Sprintf("%d-%s.mp3", i, t.Slug)
+				return c.DownloadTrack(ctx, t.Mp3, fileName)
+			})
 		}
 	}
-	
-	return convertShowToShowOutput(resp.Data), nil
+	return convertShowToOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTours(ctx context.Context, url string) error {
@@ -461,21 +464,7 @@ func (c *Client) getTours(ctx context.Context, url string) (ToursOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ToursOutput{}, fmt.Errorf("unable to get tours list: %w", err)
 	}
-	tours := make([]TourOutput, 0, len(resp.Data))
-	for _, t := range resp.Data {
-		tour := TourOutput{
-			Name:       t.Name,
-			ShowsCount: t.ShowsCount,
-			StartsOn:   t.StartsOn,
-			EndsOn:     t.EndsOn,
-		}
-		shows := convertShowToShowsOutput(t.Shows)
-		tour.Shows = shows.Shows
-		tours = append(tours, tour)
-	}
-	return ToursOutput{
-		Tours: tours,
-	}, nil
+	return convertToursToOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTour(ctx context.Context, url string) error {
@@ -500,7 +489,7 @@ func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
 		StartsOn:   resp.Data.StartsOn,
 		EndsOn:     resp.Data.EndsOn,
 	}
-	shows := convertShowToShowsOutput(resp.Data.Shows)
+	shows := convertShowsToOutput(resp.Data.Shows)
 	o.Shows = shows.Shows
 	return o, nil
 }
@@ -523,7 +512,7 @@ func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error
 	}
 	venues := make([]VenueOutput, 0, len(resp.Data))
 	for _, v := range resp.Data {
-		venues = append(venues, convertVenueToVenueOutput(v))
+		venues = append(venues, convertVenueToOutput(v))
 	}
 	return VenuesOutput{
 		TotalEntries: resp.TotalEntries,
@@ -549,7 +538,7 @@ func (c *Client) getVenue(ctx context.Context, url string) (VenueOutput, error) 
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return VenueOutput{}, fmt.Errorf("unable to get venue details: %w", err)
 	}
-	return convertVenueToVenueOutput(resp.Data), nil
+	return convertVenueToOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTags(ctx context.Context, url string) error {
@@ -570,13 +559,7 @@ func (c *Client) getTags(ctx context.Context, url string) (TagsOutput, error) {
 	}
 	tags := make([]TagListItemOutput, 0, len(resp.Data))
 	for _, t := range resp.Data {
-		tags = append(tags, TagListItemOutput{
-			Name:        t.Name,
-			Group:       t.Group,
-			Description: t.Description,
-			ShowIds:     t.ShowIds,
-			TrackIds:    t.TrackIds,
-		})
+		tags = append(tags, convertTagListItemToOutput(t))
 	}
 	return TagsOutput{
 		Tags: tags,
@@ -599,14 +582,7 @@ func (c *Client) getTag(ctx context.Context, url string) (TagListItemOutput, err
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return TagListItemOutput{}, fmt.Errorf("unable to get tour details: %w", err)
 	}
-	o := TagListItemOutput{
-		Name:        resp.Data.Name,
-		Group:       resp.Data.Group,
-		Description: resp.Data.Description,
-		ShowIds:     resp.Data.ShowIds,
-		TrackIds:    resp.Data.TrackIds,
-	}
-	return o, nil
+	return convertTagListItemToOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintSongs(ctx context.Context, url string) error {
@@ -627,7 +603,7 @@ func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) 
 	}
 	songs := make([]SongOutput, 0, len(resp.Data))
 	for _, s := range resp.Data {
-		song := convertSongToSongOutput(s)
+		song := convertSongToOutput(s)
 		songs = append(songs, song)
 	}
 	o := SongsOutput{
@@ -655,7 +631,7 @@ func (c *Client) getSong(ctx context.Context, url string) (SongOutput, error) {
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return SongOutput{}, fmt.Errorf("unable to get song details: %w", err)
 	}
-	return convertSongToSongOutput(resp.Data), nil
+	return convertSongToOutput(resp.Data), nil
 }
 
 func (c *Client) getAndPrintTracks(ctx context.Context, url string) error {
@@ -674,7 +650,7 @@ func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return TracksOutput{}, fmt.Errorf("unable to get tracks list: %w", err)
 	}
-	o := convertTracksToTracksOutput(resp.Data)
+	o := convertTracksToOutput(resp.Data)
 	o.TotalEntries = resp.TotalEntries
 	o.TotalPages = resp.TotalPages
 	o.CurrentPage = resp.Page
@@ -703,7 +679,27 @@ func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) 
 			return c.DownloadTrack(ctx, resp.Data.Mp3, fileName)
 		})
 	}
-	return convertTrackToTrackOutput(resp.Data), nil
+	return convertTrackToOutput(resp.Data), nil
+}
+
+func (c *Client) getAndPrintSearch(ctx context.Context, url string) error {
+	result, err := c.getSearch(ctx, url)
+	if err != nil {
+		fmt.Fprint(os.Stderr, searchTips)
+		return fmt.Errorf("couldn't get search results: %w", err)
+	}
+	if c.PrintJSON {
+		return printJSON(c.Output, result)
+	}
+	return prettyPrintSearch(c.Tabwriter, result)
+}
+
+func (c *Client) getSearch(ctx context.Context, url string) (SearchOutput, error) {
+	var resp SearchResponse
+	if err := c.Get(ctx, url, &resp); err != nil {
+		return SearchOutput{}, fmt.Errorf("couldn't get search results: %w", err)
+	}
+	return convertSearchToSearchOutput(resp), nil
 }
 
 // todo think about cleanup for cancelled context?
