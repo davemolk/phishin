@@ -316,7 +316,6 @@ func TestFromArgs(t *testing.T) {
 	})
 }
 
-
 func TestGetEras(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewTLSServer(http.HandlerFunc(
@@ -328,10 +327,10 @@ func TestGetEras(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := ErasOutput{
-		One: []string{"1983-1987","1988","1989","1990","1991","1992","1993","1994","1995","1996","1997","1998","1999","2000"},
-		Two: []string{"2002","2003","2004"},
-		Three: []string{"2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020"},
-		Four: []string{"2021","2022","2023"},
+		One:   []string{"1983-1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000"},
+		Two:   []string{"2002", "2003", "2004"},
+		Three: []string{"2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020"},
+		Four:  []string{"2021", "2022", "2023"},
 	}
 	ctx := context.Background()
 	url := c.FormatURL("eras")
@@ -341,7 +340,7 @@ func TestGetEras(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}	
+	}
 }
 
 func TestGetAndPrintErasText(t *testing.T) {
@@ -424,7 +423,7 @@ func TestGetEra(t *testing.T) {
 	c.Query = "3.0"
 	want := EraOutput{
 		EraName: "3.0",
-		Years: []string{"2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020"},
+		Years:   []string{"2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020"},
 	}
 	ctx := context.Background()
 	url := c.FormatURL("eras")
@@ -522,15 +521,15 @@ func TestGetYears(t *testing.T) {
 	want := YearsOutput{
 		Years: []Year{
 			{
-				Date: "1983-1987",
+				Date:      "1983-1987",
 				ShowCount: 34,
 			},
 			{
-				Date: "1988",
+				Date:      "1988",
 				ShowCount: 44,
 			},
 			{
-				Date: "1989",
+				Date:      "1989",
 				ShowCount: 64,
 			},
 		},
@@ -544,7 +543,7 @@ func TestGetYears(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}	
+	}
 }
 
 func TestGetAndPrintYearsText(t *testing.T) {
@@ -564,7 +563,7 @@ func TestGetAndPrintYearsText(t *testing.T) {
 1988       44
 1989       64
 `
-	ctx := context.Background()	
+	ctx := context.Background()
 	url := c.FormatURL("years")
 	err := c.getAndPrintYears(ctx, url)
 	if err != nil {
@@ -594,44 +593,45 @@ func TestGetYear(t *testing.T) {
 	want := ShowsOutput{
 		Shows: []ShowOutput{
 			{
-				ID: 135,
-				Date: "1994-04-04",
-				Duration: "2h 40m",
-				Sbd: true,
+				ID:         135,
+				Date:       "1994-04-04",
+				Duration:   "2h 40m",
+				Sbd:        true,
 				Remastered: false,
 				Tags: []Tag{
 					{
-						Name:"SBD", Group:"Audio",
+						Name: "SBD", Group: "Audio",
 					},
 				},
 				VenueName: "The Flynn Theatre",
 				Venue: VenueOutput{
-					Name: "The Flynn Theatre",
-					Location: "Burlington, VT",
+					Name:       "The Flynn Theatre",
+					Location:   "Burlington, VT",
 					ShowsCount: 4,
 				},
+				VenueLocation: "Burlington, VT",
 				Tracks: []TrackOutput{
 					{
-						ID: 2553,
-						ShowDate: "1994-04-04",
-						VenueName: "The Flynn Theatre",
+						ID:            2553,
+						ShowDate:      "1994-04-04",
+						VenueName:     "The Flynn Theatre",
 						VenueLocation: "Burlington, VT",
-						Title: "Divided Sky",
-						Duration: "13m 31s",
-						SetName: "Set 1",
-						Tags: []Tag{},
-						Mp3: "https://phish.in/audio/000/002/553/2553.mp3",
+						Title:         "Divided Sky",
+						Duration:      "13m 31s",
+						SetName:       "Set 1",
+						Tags:          []Tag{},
+						Mp3:           "https://phish.in/audio/000/002/553/2553.mp3",
 					},
 					{
-						ID: 2554,
-						ShowDate: "1994-04-04",
-						VenueName: "The Flynn Theatre",
+						ID:            2554,
+						ShowDate:      "1994-04-04",
+						VenueName:     "The Flynn Theatre",
 						VenueLocation: "Burlington, VT",
-						Title: "Sample in a Jar",
-						Duration: "4m 59s",
-						SetName: "Set 1",
-						Tags: []Tag{},
-						Mp3: "https://phish.in/audio/000/002/554/2554.mp3",
+						Title:         "Sample in a Jar",
+						Duration:      "4m 59s",
+						SetName:       "Set 1",
+						Tags:          []Tag{},
+						Mp3:           "https://phish.in/audio/000/002/554/2554.mp3",
 					},
 				},
 			},
@@ -690,7 +690,7 @@ func TestGetAndPrintYearText(t *testing.T) {
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
 		want := `ID:  Date:       Venue:             Location:       Duration:  Soundboard:  Remastered:
-135  1994-04-04  The Flynn Theatre  Burlington, VT  2h 40m     yes          
+135  1994-04-04  The Flynn Theatre  Burlington, VT  2h 40m     yes          no
 `
 		ctx := context.Background()
 		c.Query = query
@@ -718,59 +718,60 @@ func TestGetShows(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	want := ShowsOutput{
 		TotalEntries: 1759,
-		TotalPages: 88,
-		CurrentPage: 1,
+		TotalPages:   88,
+		CurrentPage:  1,
 		Shows: []ShowOutput{
 			{
-				ID: 696,
-				Date: "1990-04-05",
-				Duration: "2h 27m",
-				Sbd: true,
+				ID:         696,
+				Date:       "1990-04-05",
+				Duration:   "2h 27m",
+				Sbd:        true,
 				Remastered: false,
 				Tags: []Tag{
 					{
-						Name: "SBD",
+						Name:  "SBD",
 						Group: "Audio",
 					},
 				},
-				VenueName: "J.J. McCabe's",
+				VenueName:     "J.J. McCabe's",
+				VenueLocation: "Boulder, CO",
 				Venue: VenueOutput{
-					Name: "J.J. McCabe's",
-					Location: "Boulder, CO",
+					Name:       "J.J. McCabe's",
+					Location:   "Boulder, CO",
 					ShowsCount: 1,
 				},
 				Tracks: []TrackOutput{
 					{
-						ID: 14073,
-						ShowDate: "1990-04-05",
-						VenueName: "J.J. McCabe's",
+						ID:            14073,
+						ShowDate:      "1990-04-05",
+						VenueName:     "J.J. McCabe's",
 						VenueLocation: "Boulder, CO",
-						Title: "Possum",
-						Duration: "6m 48s",
-						SetName: "Set 1",
+						Title:         "Possum",
+						Duration:      "6m 48s",
+						SetName:       "Set 1",
 						Tags: []Tag{
 							{
-								Name: "SBD",
+								Name:  "SBD",
 								Group: "Audio",
 							},
 						},
 						Mp3: "https://phish.in/audio/000/014/073/14073.mp3",
 					},
 					{
-						ID: 14074,
-						ShowDate: "1990-04-05",
-						VenueName: "J.J. McCabe's",
+						ID:            14074,
+						ShowDate:      "1990-04-05",
+						VenueName:     "J.J. McCabe's",
 						VenueLocation: "Boulder, CO",
-						Title: "Ya Mar",
-						Duration: "7m 7s",
-						SetName: "Set 1",
+						Title:         "Ya Mar",
+						Duration:      "7m 7s",
+						SetName:       "Set 1",
 						Tags: []Tag{
 							{
-								Name: "SBD",
+								Name:  "SBD",
 								Group: "Audio",
 							},
 							{
-								Name: "Tease",
+								Name:  "Tease",
 								Group: "Song Content",
 								Notes: "Theme from Bonanza by Ray Evans and\n Jay Livingston",
 							},
@@ -829,7 +830,7 @@ Total Entries: 1759  Total Pages: 88  Result Page: 1
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
 		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
-696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
+696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          no
 
 Total Entries: 1759  Total Pages: 88  Result Page: 1
 `
@@ -863,55 +864,55 @@ func TestGetShow(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	// grab a subset to spot-check values
 	want := ShowOutput{
-		ID: 696,
-		Date: "1990-04-05",
-		Duration: "2h 27m",
-		Sbd: true,
+		ID:         696,
+		Date:       "1990-04-05",
+		Duration:   "2h 27m",
+		Sbd:        true,
 		Remastered: false,
 		Tags: []Tag{
 			{
-				Name: "SBD",
+				Name:  "SBD",
 				Group: "Audio",
 			},
 		},
 		VenueName: "J.J. McCabe's",
 		Venue: VenueOutput{
-			Name: "J.J. McCabe's",
-			Location: "Boulder, CO",
+			Name:       "J.J. McCabe's",
+			Location:   "Boulder, CO",
 			ShowsCount: 1,
 		},
 		Tracks: []TrackOutput{
 			{
-				ID: 14073,
-				ShowDate: "1990-04-05",
-				VenueName: "J.J. McCabe's",
+				ID:            14073,
+				ShowDate:      "1990-04-05",
+				VenueName:     "J.J. McCabe's",
 				VenueLocation: "Boulder, CO",
-				Title: "Possum",
-				Duration: "6m 48s",
-				SetName: "Set 1",
+				Title:         "Possum",
+				Duration:      "6m 48s",
+				SetName:       "Set 1",
 				Tags: []Tag{
 					{
-						Name: "SBD",
+						Name:  "SBD",
 						Group: "Audio",
 					},
 				},
 				Mp3: "https://phish.in/audio/000/014/073/14073.mp3",
 			},
 			{
-				ID: 14074,
-				ShowDate: "1990-04-05",
-				VenueName: "J.J. McCabe's",
+				ID:            14074,
+				ShowDate:      "1990-04-05",
+				VenueName:     "J.J. McCabe's",
 				VenueLocation: "Boulder, CO",
-				Title: "Ya Mar",
-				Duration: "7m 7s",
-				SetName: "Set 1",
+				Title:         "Ya Mar",
+				Duration:      "7m 7s",
+				SetName:       "Set 1",
 				Tags: []Tag{
 					{
-						Name: "SBD",
+						Name:  "SBD",
 						Group: "Audio",
 					},
 					{
-						Name: "Tease",
+						Name:  "Tease",
 						Group: "Song Content",
 						Notes: "Theme from Bonanza by Ray Evans and\n Jay Livingston",
 					},
@@ -928,7 +929,7 @@ func TestGetShow(t *testing.T) {
 		t.Fatal(err)
 	}
 	// spot-check a few values instead of writing up the whole
-	// struct -- we'll confirm we have what we want in the 
+	// struct -- we'll confirm we have what we want in the
 	// print show text test.
 	if got.Date != want.Date {
 		t.Errorf("got %v want %v", got.Date, want.Date)
@@ -968,33 +969,33 @@ func TestGetAndPrintShowText(t *testing.T) {
 1990-04-05  J.J. McCabe's  Boulder, CO
 
 Set 1
-Possum                  6m 48s   
-Ya Mar                  7m 7s    
-David Bowie             11m 23s  
-Carolina                2m 1s    
-The Oh Kee Pa Ceremony  1m 45s   
-Suzy Greenberg          5m 19s   
-You Enjoy Myself        12m 40s  
-The Lizards             10m 12s  
-Fire                    4m 20s   
+Possum                   6m 48s
+Ya Mar                   7m 7s
+David Bowie              11m 23s
+Carolina                 2m 1s
+The Oh Kee Pa Ceremony   1m 45s
+Suzy Greenberg           5m 19s
+You Enjoy Myself         12m 40s
+The Lizards              10m 12s
+Fire                     4m 20s
 
-Set 2                    
-Reba                     11m 39s  
-Uncle Pen                5m 14s   
-Jesus Just Left Chicago  8m 10s   
-AC/DC Bag                6m 23s   
-Donna Lee                3m 24s   
-Tweezer                  10m 0s   
-Fee                      5m 14s   
-Cavern                   4m 59s   
-Mike's Song              6m 23s   
-I Am Hydrogen            2m 19s   
-Weekapaug Groove         7m 35s   
-If I Only Had a Brain    3m 10s   
-Contact                  6m 21s   
+Set 2
+Reba                     11m 39s
+Uncle Pen                5m 14s
+Jesus Just Left Chicago  8m 10s
+AC/DC Bag                6m 23s
+Donna Lee                3m 24s
+Tweezer                  10m 0s
+Fee                      5m 14s
+Cavern                   4m 59s
+Mike's Song              6m 23s
+I Am Hydrogen            2m 19s
+Weekapaug Groove         7m 35s
+If I Only Had a Brain    3m 10s
+Contact                  6m 21s
 
-Encore           
-Golgi Apparatus  4m 41s  
+Encore
+Golgi Apparatus          4m 41s
 `
 		ctx := context.Background()
 		c.Query = query
@@ -1016,64 +1017,133 @@ Golgi Apparatus  4m 41s
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
 		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
-696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          
+696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          no
 
 Show Tags:
 SBD
 
 Set 1
-Possum                  6m 48s   SBD
-Ya Mar                  7m 7s    SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston
-David Bowie             11m 23s  SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston, Tease: Wipe Out by The Surfaris
-Carolina                2m 1s    SBD, A Cappella
-The Oh Kee Pa Ceremony  1m 45s   SBD
-Suzy Greenberg          5m 19s   SBD
-You Enjoy Myself        12m 40s  SBD, Tease: Flash Light by Parliament
-The Lizards             10m 12s  SBD
-Fire                    4m 20s   SBD
+Possum                   6m 48s
+Ya Mar                   7m 7s
+David Bowie              11m 23s
+Carolina                 2m 1s
+The Oh Kee Pa Ceremony   1m 45s
+Suzy Greenberg           5m 19s
+You Enjoy Myself         12m 40s
+The Lizards              10m 12s
+Fire                     4m 20s
 
-Set 2                    
-Reba                     11m 39s  SBD
-Uncle Pen                5m 14s   SBD
-Jesus Just Left Chicago  8m 10s   SBD, Guest: Dan Mosebee on harmonica
-AC/DC Bag                6m 23s   SBD
-Donna Lee                3m 24s   SBD
-Tweezer                  10m 0s   SBD, Tease: Dave's Energy Guide
-Fee                      5m 14s   SBD
-Cavern                   4m 59s   SBD, Alt Lyric: "...taking turns at *stabbing* her; the brothel wife then grabbed the knife and slashed me on the tongue; I turned the blade back on the bitch and dropped her in the dung...a cushion convector, a *penile collector*..."
-Mike's Song              6m 23s   SBD
-I Am Hydrogen            2m 19s   SBD
-Weekapaug Groove         7m 35s   SBD
-If I Only Had a Brain    3m 10s   SBD
-Contact                  6m 21s   SBD
+Set 2
+Reba                     11m 39s
+Uncle Pen                5m 14s
+Jesus Just Left Chicago  8m 10s
+AC/DC Bag                6m 23s
+Donna Lee                3m 24s
+Tweezer                  10m 0s
+Fee                      5m 14s
+Cavern                   4m 59s
+Mike's Song              6m 23s
+I Am Hydrogen            2m 19s
+Weekapaug Groove         7m 35s
+If I Only Had a Brain    3m 10s
+Contact                  6m 21s
 
-Encore           
-Golgi Apparatus  4m 41s  SBD
+Encore
+Golgi Apparatus          4m 41s
 
-Mp3:
-Possum                   https://phish.in/audio/000/014/073/14073.mp3
-Ya Mar                   https://phish.in/audio/000/014/074/14074.mp3
-David Bowie              https://phish.in/audio/000/014/075/14075.mp3
-Carolina                 https://phish.in/audio/000/014/076/14076.mp3
-The Oh Kee Pa Ceremony   https://phish.in/audio/000/014/077/14077.mp3
-Suzy Greenberg           https://phish.in/audio/000/014/078/14078.mp3
-You Enjoy Myself         https://phish.in/audio/000/014/079/14079.mp3
-The Lizards              https://phish.in/audio/000/014/080/14080.mp3
-Fire                     https://phish.in/audio/000/014/081/14081.mp3
-Reba                     https://phish.in/audio/000/014/082/14082.mp3
-Uncle Pen                https://phish.in/audio/000/014/083/14083.mp3
-Jesus Just Left Chicago  https://phish.in/audio/000/014/084/14084.mp3
-AC/DC Bag                https://phish.in/audio/000/014/085/14085.mp3
-Donna Lee                https://phish.in/audio/000/014/086/14086.mp3
-Tweezer                  https://phish.in/audio/000/014/087/14087.mp3
-Fee                      https://phish.in/audio/000/014/088/14088.mp3
-Cavern                   https://phish.in/audio/000/014/089/14089.mp3
-Mike's Song              https://phish.in/audio/000/014/090/14090.mp3
-I Am Hydrogen            https://phish.in/audio/000/014/091/14091.mp3
-Weekapaug Groove         https://phish.in/audio/000/014/092/14092.mp3
-If I Only Had a Brain    https://phish.in/audio/000/014/093/14093.mp3
-Contact                  https://phish.in/audio/000/014/094/14094.mp3
-Golgi Apparatus          https://phish.in/audio/000/014/095/14095.mp3
+Track Info:
+Possum
+https://phish.in/audio/000/014/073/14073.mp3
+SBD
+
+Ya Mar
+https://phish.in/audio/000/014/074/14074.mp3
+SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston
+
+David Bowie
+https://phish.in/audio/000/014/075/14075.mp3
+SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston, Tease: Wipe Out by The Surfaris
+
+Carolina
+https://phish.in/audio/000/014/076/14076.mp3
+SBD, A Cappella
+
+The Oh Kee Pa Ceremony
+https://phish.in/audio/000/014/077/14077.mp3
+SBD
+
+Suzy Greenberg
+https://phish.in/audio/000/014/078/14078.mp3
+SBD
+
+You Enjoy Myself
+https://phish.in/audio/000/014/079/14079.mp3
+SBD, Tease: Flash Light by Parliament
+
+The Lizards
+https://phish.in/audio/000/014/080/14080.mp3
+SBD
+
+Fire
+https://phish.in/audio/000/014/081/14081.mp3
+SBD
+
+Reba
+https://phish.in/audio/000/014/082/14082.mp3
+SBD
+
+Uncle Pen
+https://phish.in/audio/000/014/083/14083.mp3
+SBD
+
+Jesus Just Left Chicago
+https://phish.in/audio/000/014/084/14084.mp3
+SBD, Guest: Dan Mosebee on harmonica
+
+AC/DC Bag
+https://phish.in/audio/000/014/085/14085.mp3
+SBD
+
+Donna Lee
+https://phish.in/audio/000/014/086/14086.mp3
+SBD
+
+Tweezer
+https://phish.in/audio/000/014/087/14087.mp3
+SBD, Tease: Dave's Energy Guide
+
+Fee
+https://phish.in/audio/000/014/088/14088.mp3
+SBD
+
+Cavern
+https://phish.in/audio/000/014/089/14089.mp3
+SBD, Alt Lyric: "...taking turns at *stabbing* her; the brothel wife then grabbed the knife and slashed me on the tongue; I turned the blade back on the bitch and dropped her in the dung...a cushion convector, a *penile collector*..."
+
+Mike's Song
+https://phish.in/audio/000/014/090/14090.mp3
+SBD
+
+I Am Hydrogen
+https://phish.in/audio/000/014/091/14091.mp3
+SBD
+
+Weekapaug Groove
+https://phish.in/audio/000/014/092/14092.mp3
+SBD
+
+If I Only Had a Brain
+https://phish.in/audio/000/014/093/14093.mp3
+SBD
+
+Contact
+https://phish.in/audio/000/014/094/14094.mp3
+SBD
+
+Golgi Apparatus
+https://phish.in/audio/000/014/095/14095.mp3
+SBD
+
 `
 		ctx := context.Background()
 		c.Query = query
@@ -1101,20 +1171,20 @@ func TestGetVenues(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	want := VenuesOutput{
 		TotalEntries: 666,
-		TotalPages: 34,
-		CurrentPage: 1,
+		TotalPages:   34,
+		CurrentPage:  1,
 		Venues: []VenueOutput{
 			{
-				Name: "The Base Lodge, Johnson State College",
-				Location: "Johnson, VT",
+				Name:       "The Base Lodge, Johnson State College",
+				Location:   "Johnson, VT",
 				ShowsCount: 2,
-				ShowDates: []string{"1988-03-11","1989-04-14"},
+				ShowDates:  []string{"1988-03-11", "1989-04-14"},
 			},
 			{
-				Name: "The Academy",
-				Location: "New York, NY",
+				Name:       "The Academy",
+				Location:   "New York, NY",
 				ShowsCount: 1,
-				ShowDates: []string{"1991-07-15"},
+				ShowDates:  []string{"1991-07-15"},
 			},
 		},
 	}
@@ -1157,7 +1227,7 @@ Total Entries: 666  Total Pages: 34  Result Page: 1
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
-	
+
 }
 
 func TestGetVenue(t *testing.T) {
@@ -1176,10 +1246,10 @@ func TestGetVenue(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := VenueOutput{
-		Name: "The Academy",
-		Location: "New York, NY",
+		Name:       "The Academy",
+		Location:   "New York, NY",
 		ShowsCount: 1,
-		ShowDates: []string{"1991-07-15"},
+		ShowDates:  []string{"1991-07-15"},
 	}
 	ctx := context.Background()
 	c.Query = query
@@ -1242,14 +1312,14 @@ func TestGetTags(t *testing.T) {
 	want := TagsOutput{
 		Tags: []TagListItemOutput{
 			{
-				Name: "Costume",
+				Name:        "Costume",
 				Description: "Musical costume sequence",
-				Group: "Set Content",
+				Group:       "Set Content",
 			},
 			{
-				Name: "Audience",
+				Name:        "Audience",
 				Description: "Contribution from audience during performance",
-				Group: "Song Content",
+				Group:       "Song Content",
 			},
 		},
 	}
@@ -1290,7 +1360,7 @@ Audience  Contribution from audience during performance  Song Content
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
-	
+
 }
 
 func TestGetTag(t *testing.T) {
@@ -1309,11 +1379,11 @@ func TestGetTag(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := TagListItemOutput{
-		Name: "Jamcharts",
+		Name:        "Jamcharts",
 		Description: "Phish.net Jam Charts selections (phish.net/jamcharts)",
-		Group: "Curated Selections",
-		ShowIds: []int{3},
-		TrackIds: []int{1, 2},
+		Group:       "Curated Selections",
+		ShowIds:     []int{3},
+		TrackIds:    []int{1, 2},
 	}
 	ctx := context.Background()
 	c.Query = query
@@ -1379,51 +1449,54 @@ func TestGetTours(t *testing.T) {
 	want := ToursOutput{
 		Tours: []TourOutput{
 			{
-				Name: "1983 Tour",
-				StartsOn: "1983-12-02",
-				EndsOn: "1983-12-02",
+				Name:       "1983 Tour",
+				StartsOn:   "1983-12-02",
+				EndsOn:     "1983-12-02",
 				ShowsCount: 1,
 				Shows: []ShowOutput{
 					{
-						ID: 1324,
-						Date: "1983-12-02",
-						Duration: "17m 11s",
-						Sbd: true,
-						Remastered: false,
-						Venue: VenueOutput{},
-						Tags: nil,
-						VenueName: "Harris-Millis Cafeteria, University of Vermont",
-						Tracks: []TrackOutput{},
+						ID:            1324,
+						Date:          "1983-12-02",
+						Duration:      "17m 11s",
+						Sbd:           true,
+						Remastered:    false,
+						Venue:         VenueOutput{},
+						Tags:          nil,
+						VenueName:     "Harris-Millis Cafeteria, University of Vermont",
+						Tracks:        []TrackOutput{},
+						VenueLocation: "Burlington, VT",
 					},
 				},
 			},
 			{
-				Name: "1984 Tour",
-				StartsOn: "1984-11-03",
-				EndsOn: "1984-12-01",
+				Name:       "1984 Tour",
+				StartsOn:   "1984-11-03",
+				EndsOn:     "1984-12-01",
 				ShowsCount: 2,
 				Shows: []ShowOutput{
 					{
-						ID: 1334,
-						Date: "1984-11-03",
-						Duration: "1h 10m",
-						Sbd: false,
-						Remastered: false,
-						Venue: VenueOutput{},
-						Tags: nil,
-						VenueName: "Slade Hall, University of Vermont",
-						Tracks: []TrackOutput{},
+						ID:            1334,
+						Date:          "1984-11-03",
+						Duration:      "1h 10m",
+						Sbd:           false,
+						Remastered:    false,
+						Venue:         VenueOutput{},
+						Tags:          nil,
+						VenueName:     "Slade Hall, University of Vermont",
+						VenueLocation: "Burlington, VT",
+						Tracks:        []TrackOutput{},
 					},
 					{
-						ID: 2,
-						Date: "1984-12-01",
-						Duration: "1h 35m",
-						Sbd: true,
-						Remastered: false,
-						Venue: VenueOutput{},
-						Tags: nil,
-						VenueName: "Nectar's",
-						Tracks: []TrackOutput{},
+						ID:            2,
+						Date:          "1984-12-01",
+						Duration:      "1h 35m",
+						Sbd:           true,
+						Remastered:    false,
+						Venue:         VenueOutput{},
+						Tags:          nil,
+						VenueName:     "Nectar's",
+						VenueLocation: "Burlington, VT",
+						Tracks:        []TrackOutput{},
 					},
 				},
 			},
@@ -1466,7 +1539,7 @@ func TestGetAndPrintToursText(t *testing.T) {
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
-	
+
 }
 
 func TestGetTour(t *testing.T) {
@@ -1485,21 +1558,22 @@ func TestGetTour(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := TourOutput{
-		Name: "1985 Tour",
-		StartsOn: "1985-03-04",
-		EndsOn: "1985-11-23",
+		Name:       "1985 Tour",
+		StartsOn:   "1985-03-04",
+		EndsOn:     "1985-11-23",
 		ShowsCount: 6,
 		Shows: []ShowOutput{
 			{
-				ID: 3,
-				Date: "1985-03-04",
-				Duration: "40m 14s",
-				Sbd: true,
-				Remastered: false,
-				Venue: VenueOutput{},
-				Tags: nil,
-				VenueName: "Hunt's",
-				Tracks: []TrackOutput{},
+				ID:            3,
+				Date:          "1985-03-04",
+				Duration:      "40m 14s",
+				Sbd:           true,
+				Remastered:    false,
+				Venue:         VenueOutput{},
+				Tags:          nil,
+				VenueName:     "Hunt's",
+				VenueLocation: "Burlington, VT",
+				Tracks:        []TrackOutput{},
 			},
 		},
 	}
@@ -1535,8 +1609,8 @@ func TestGetAndPrintTourText(t *testing.T) {
 	want := `Name:      Starts On:  Ends On:    Show Count:
 1985 Tour  1985-03-04  1985-11-23  6
 
-ID:  Date:       Venue:  Location:  Duration:  Soundboard:  Remastered:
-3    1985-03-04  Hunt's             40m 14s    yes          
+ID:  Date:       Venue:  Location:       Duration:  Soundboard:  Remastered:
+3    1985-03-04  Hunt's  Burlington, VT  40m 14s    yes          no
 `
 	ctx := context.Background()
 	c.Query = query
@@ -1563,22 +1637,22 @@ func TestGetSongs(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	want := SongsOutput{
 		TotalEntries: 942,
-		TotalPages: 48,
-		CurrentPage: 1,
+		TotalPages:   48,
+		CurrentPage:  1,
 		Songs: []SongOutput{
 			{
-				ID: 84,
-				Title: "Billy Breathes",
-				Original: true,
-				Artist: "",
+				ID:          84,
+				Title:       "Billy Breathes",
+				Original:    true,
+				Artist:      "",
 				TracksCount: 64,
-				Tracks: []TrackOutput{},
+				Tracks:      []TrackOutput{},
 			},
 			{
-				Title: "Arc",
+				Title:    "Arc",
 				Original: false,
-				Artist: "Arctic Monkeys",
-				Tracks: []TrackOutput{},
+				Artist:   "Arctic Monkeys",
+				Tracks:   []TrackOutput{},
 			},
 		},
 	}
@@ -1605,9 +1679,9 @@ func TestGetAndPrintSongsText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Title:          Phish Original:  Original Artist:  TracksCount
-Billy Breathes  yes                                64
-Arc                              Arctic Monkeys    0
+	want := `Title:          Original Artist:  TracksCount:
+Billy Breathes  Phish             64
+Arc             Arctic Monkeys    0
 
 Total Entries: 942  Total Pages: 48  Result Page: 1
 `
@@ -1639,27 +1713,27 @@ func TestGetSong(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := SongOutput{
-		ID: 979,
-		Title: "David Bowie",
-		Original: true,
-		Artist: "",
+		ID:          979,
+		Title:       "David Bowie",
+		Original:    true,
+		Artist:      "",
 		TracksCount: 447,
 		Tracks: []TrackOutput{
 			{
-				ID: 115,
-				ShowDate: "1986-10-31",
-				VenueName: "Sculpture Room, Goddard College",
+				ID:            115,
+				ShowDate:      "1986-10-31",
+				VenueName:     "Sculpture Room, Goddard College",
 				VenueLocation: "Plainfield, VT",
-				Title: "David Bowie",
-				Duration: "10m 19s",
-				SetName: "Set 2",
+				Title:         "David Bowie",
+				Duration:      "10m 19s",
+				SetName:       "Set 2",
 				Tags: []Tag{
 					{
-						Name: "SBD",
+						Name:  "SBD",
 						Group: "Audio",
 					},
 					{
-						Name: "Jamcharts",
+						Name:  "Jamcharts",
 						Group: "Curated Selections",
 						Notes: "Earliest known live version. Jam is played at a slowed tempo initially, but picks up speed and intensity as it develops.",
 					},
@@ -1697,8 +1771,8 @@ func TestGetAndPrintSongText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Title:       ID:  Phish Original:  Original Artist:  TracksCount
-David Bowie  979  true                               447
+	want := `Title:       ID:  Original Artist:  TracksCount:
+David Bowie  979  Phish             447
 
 Tracks
 ID:  Date:       Venue:                           Location:       Duration:  Mp3
@@ -1729,37 +1803,37 @@ func TestGetTracks(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	want := TracksOutput{
 		TotalEntries: 35069,
-		TotalPages: 1754,
-		CurrentPage: 1,
+		TotalPages:   1754,
+		CurrentPage:  1,
 		Tracks: []TrackOutput{
 			{
-				ID: 4270,
-				Title: "Maze",
-				ShowDate: "1994-10-07",
-				VenueName: "Stabler Arena, Lehigh University",
+				ID:            4270,
+				Title:         "Maze",
+				ShowDate:      "1994-10-07",
+				VenueName:     "Stabler Arena, Lehigh University",
 				VenueLocation: "Bethlehem, PA",
-				Duration: "11m 13s",
-				SetName: "Set 2",
-				Tags: []Tag{},
-				Mp3: "https://phish.in/audio/000/004/270/4270.mp3",
+				Duration:      "11m 13s",
+				SetName:       "Set 2",
+				Tags:          []Tag{},
+				Mp3:           "https://phish.in/audio/000/004/270/4270.mp3",
 			},
 			{
-				ID: 6693,
-				Title: "Stash",
-				ShowDate: "1993-04-09",
-				VenueName: "State Theatre",
+				ID:            6693,
+				Title:         "Stash",
+				ShowDate:      "1993-04-09",
+				VenueName:     "State Theatre",
 				VenueLocation: "Minneapolis, MN",
-				Duration: "11m 15s",
-				SetName: "Set 1",
+				Duration:      "11m 15s",
+				SetName:       "Set 1",
 				Tags: []Tag{
 					{
-						Name: "SBD",
+						Name:  "SBD",
 						Group: "Audio",
 					},
 					{
-						Name: "Jamcharts",
+						Name:  "Jamcharts",
 						Group: "Curated Selections",
-						Notes: "Several minutes of growly, percussive, dissonant, and atypical jamming.",					
+						Notes: "Several minutes of growly, percussive, dissonant, and atypical jamming.",
 					},
 				},
 				Mp3: "https://phish.in/audio/000/006/693/6693.mp3",
@@ -1823,22 +1897,22 @@ func TestGetTrack(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := TrackOutput{
-		ID: 6693,
-		Title: "Stash",
-		ShowDate: "1993-04-09",
-		VenueName: "State Theatre",
+		ID:            6693,
+		Title:         "Stash",
+		ShowDate:      "1993-04-09",
+		VenueName:     "State Theatre",
 		VenueLocation: "Minneapolis, MN",
-		Duration: "11m 15s",
-		SetName: "Set 1",
+		Duration:      "11m 15s",
+		SetName:       "Set 1",
 		Tags: []Tag{
 			{
-				Name: "SBD",
+				Name:  "SBD",
 				Group: "Audio",
 			},
 			{
-				Name: "Jamcharts",
+				Name:  "Jamcharts",
 				Group: "Curated Selections",
-				Notes: "Several minutes of growly, percussive, dissonant, and atypical jamming.",					
+				Notes: "Several minutes of growly, percussive, dissonant, and atypical jamming.",
 			},
 		},
 		Mp3: "https://phish.in/audio/000/006/693/6693.mp3",
@@ -1884,6 +1958,110 @@ Jamcharts  Curated Selections  Several minutes of growly, percussive, dissonant,
 	c.Query = query
 	url := c.FormatURL(path)
 	err := c.getAndPrintTrack(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if got != want {
+		t.Errorf("got \n%s want \n%s", got, want)
+	}
+}
+
+func TestGetSearch(t *testing.T) {
+	t.Parallel()
+	query := "boulder"
+	path := "search"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/boulder_search.json")
+		}))
+	defer ts.Close()
+	c := NewClient("dummy", os.Stdout)
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := SearchOutput{
+		Results: struct {
+			ExactShow  *ShowOutput         "json:\"exact_show,omitempty\""
+			OtherShows []ShowOutput        "json:\"other_shows,omitempty\""
+			ShowTags   []any               "json:\"show_tags,omitempty\""
+			Songs      []SongOutput        "json:\"songs,omitempty\""
+			Tags       []TagListItemOutput "json:\"tags,omitempty\""
+			Tours      []TourOutput        "json:\"tours,omitempty\""
+			TrackTags  []TrackTagOutput    "json:\"track_tags,omitempty\""
+			Tracks     []TrackOutput       "json:\"tracks,omitempty\""
+			Venues     []VenueOutput       "json:\"venues,omitempty\""
+		}{
+			TrackTags: []TrackTagOutput{
+				{
+					ID:         54793,
+					TrackID:    10882,
+					TagID:      16,
+					Notes:      "Colonel Forbin braves thousands of falling rocks and boulders, their collective force transforming the mountainside into the face of the Great and Knowledgeable Icculus, who, in an act of benevolence, calls upon the Famous Mockingbird to retrieve the Helping Friendly Book and save the people of Gamehendge.",
+					Transcript: "TREY: Okay, outside right now it's snowing, there's clouds in the sky. Come with us now, lifting up slowly, off the ground. Picture outside this building, thousands, you know, hundreds of miles of clouds over us right now, snow coming down over us cold. Slowly we're lifting up... You can see up above; looking down, looking down you see the building and the streets going by and bodies of water.",
+				},
+			},
+			Venues: []VenueOutput{
+				{
+					Name:       "Balch Fieldhouse, University of Colorado",
+					Location:   "Boulder, CO",
+					ShowsCount: 2,
+				},
+			},
+		},
+	}
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	got, err := c.getSearch(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got \n%v \nwant\n%v", got, want)
+	}
+}
+
+func TestGetAndPrintSearchText(t *testing.T) {
+	t.Parallel()
+	query := "boulder"
+	path := "search"
+	ts := httptest.NewTLSServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
+				t.Fatalf("wrong url: %s", r.URL.Path)
+			}
+			http.ServeFile(w, r, "../testdata/boulder_search.json")
+		}))
+	defer ts.Close()
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
+	c.Output = buf
+	c.BaseURL = ts.URL
+	c.HTTPClient = ts.Client()
+	want := `*** TRACK TAG RESULTS ***
+ID:    TrackID:  TagID:
+54793  10882     16
+
+Notes:
+Colonel Forbin braves thousands of falling rocks and boulders, their collective force transforming the mountainside into the face of the Great and Knowledgeable Icculus, who, in an act of benevolence, calls upon the Famous Mockingbird to retrieve the Helping Friendly Book and save the people of Gamehendge.
+
+Transcript:
+TREY: Okay, outside right now it's snowing, there's clouds in the sky. Come with us now, lifting up slowly, off the ground. Picture outside this building, thousands, you know, hundreds of miles of clouds over us right now, snow coming down over us cold. Slowly we're lifting up... You can see up above; looking down, looking down you see the building and the streets going by and bodies of water.
+
+
+*** VENUE RESULTS ***
+Venue:                                    Location:    Show Count:
+Balch Fieldhouse, University of Colorado  Boulder, CO  2
+
+
+`
+	ctx := context.Background()
+	c.Query = query
+	url := c.FormatURL(path)
+	err := c.getAndPrintSearch(ctx, url)
 	if err != nil {
 		t.Fatal(err)
 	}

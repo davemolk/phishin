@@ -28,18 +28,18 @@ getting started:
 	go phishin!
 
 supported arguments:
-	eras 			(-s as era, e.g. 3.0)
-	years 			(-s as year, e.g. 1994)
-	songs 			(-s as song slug or song-id, e.g. harry-hood)
-	tours 			(-s as tour slug or tour id, e.g. 1983-tour)
-	venues 			(-s as venue slug or venue id, e.g. the-academy)
-	shows 			(-s as show date or show id, e.g. 1994-10-31)
-	show-on-date -s 	(query required, format as yyyy-mm-dd)
-	shows-on-day-of-year -s (query required, format as 10-31)
-	random-show
-	tracks 			(-s as tracks id, e.g. 6693)
-	search -s
-	tags 			(-s as tag slug or tag id, e.g. sbd)
+eras 			(-s as era, e.g. 3.0)
+years 			(-s as year, e.g. 1994)
+songs 			(-s as song slug or song-id, e.g. harry-hood)
+tours 			(-s as tour slug or tour id, e.g. 1983-tour)
+venues 			(-s as venue slug or venue id, e.g. the-academy)
+shows 			(-s as show date or show id, e.g. 1994-10-31)
+show-on-date -s 	(query required, format as yyyy-mm-dd)
+shows-on-day-of-year -s (query required, format as 10-31)
+random-show
+tracks 			(-s as tracks id, e.g. 6693)
+search -s
+tags 			(-s as tag slug or tag id, e.g. sbd)
 
 arguments correspond to the phishin endpoints, and one (and only one) argument must be specified.
 most allow an optional search query (-s/--search) to change the output from a list of
@@ -66,25 +66,21 @@ output-related flags:
 -o/--output		options are json or text, default to text
 -v/--verbose 		include extra information in output (not supported in all routes)
 
-help with searching:
-searching for a date? enter it like "12/31/95" or "1995-12-31"
-searching for a day of the year (like Halloween)? search for an instance like "10/31/94"
-searching for a venue? enter part of its name (or past names) or location like "msg" or "new york"
-searching for a song? enter all or part of its name like "also sprach" or "birdwatcher"
-searching for a tour? enter all or part of its name like "summer" or "1995"
-searching for a tag? enter all or part of its name or description like "sbd" or "soundboard"
-searching for a tag instance? enter part of its notes like "vaccuum solo"
+get a blank space where results should be? try the following:
+format dates as "1995-12-31"
+search for venues via name/past name or location ("msg" or "new york")
+enter all or part of song names, tour names, etc (like "summer", "1995", "sbd", etc.)
+
+see https://phish.in/api-docs for more details
 `
 
 const searchTips = `
-help with searching:
-searching for a date? enter it like "12/31/95" or "1995-12-31"
-searching for a day of the year (like Halloween)? search for an instance like "10/31/94"
-searching for a venue? enter part of its name (or past names) or location like "msg" or "new york"
-searching for a song? enter all or part of its name like "also sprach" or "birdwatcher"
-searching for a tour? enter all or part of its name like "summer" or "1995"
-searching for a tag? enter all or part of its name or description like "sbd" or "soundboard"
-searching for a tag instance? enter part of its notes like "vaccuum solo"
+get a blank space where results should be? try the following:
+format dates as "1995-12-31"
+search for venues via name/past name or location ("msg" or "new york")
+enter all or part of song names, tour names, etc (like "summer", "1995", "sbd", etc.)
+
+see https://phish.in/api-docs for more details
 `
 
 const endpointList = `

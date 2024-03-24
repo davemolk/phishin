@@ -20,7 +20,7 @@ import (
 type Client struct {
 	Tabwriter  *tabwriter.Writer
 	HTTPClient *http.Client
-	ErrGroup *errgroup.Group
+	ErrGroup   *errgroup.Group
 	BaseURL    string
 	APIKey     string
 	PrintJSON  bool
@@ -29,7 +29,7 @@ type Client struct {
 	Output     io.Writer
 	Verbose    bool
 	Debug      bool
-	Download bool
+	Download   bool
 }
 
 func NewClient(apiKey string, output io.Writer) *Client {
@@ -39,7 +39,7 @@ func NewClient(apiKey string, output io.Writer) *Client {
 		APIKey:     apiKey,
 		Output:     output,
 		Tabwriter:  tabwriter.NewWriter(output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns),
-		ErrGroup: &errgroup.Group{},
+		ErrGroup:   &errgroup.Group{},
 	}
 }
 
@@ -175,19 +175,12 @@ func (c *Client) Get(ctx context.Context, url string, data any) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			fmt.Fprint(os.Stderr, searchTips)
+		}
 		return fmt.Errorf("unexpected response status: %q", resp.Status)
 	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("error reading response body: %w", err)
-	}
-
-	err = json.Unmarshal(b, data)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error decoding json response: %v\n", string(b))
-		return err
-	}
-	return nil
+	return json.NewDecoder(resp.Body).Decode(data)
 }
 
 func (c *Client) run(ctx context.Context, path string) error {
@@ -438,7 +431,7 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 	if c.Download {
 		for i, t := range resp.Data.Tracks {
 			// start track number with 1, capture loop vars locally
-			i, t := i + 1, t
+			i, t := i+1, t
 			c.ErrGroup.Go(func() error {
 				fileName := fmt.Sprintf("%d-%s.mp3", i, t.Slug)
 				return c.DownloadTrack(ctx, t.Mp3, fileName)
@@ -710,7 +703,7 @@ func (c *Client) DownloadTrack(ctx context.Context, url, fileName string) error 
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer func() { _ =  f.Close()}()
+	defer func() { _ = f.Close() }()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
