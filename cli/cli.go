@@ -4,12 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 )
+
+type GenericResponse struct {
+	TotalEntries int `json:"total_entries"`
+	TotalPages   int `json:"total_pages"`
+	Page         int `json:"page"`
+	Data         any `json:"data"`
+}
 
 func printJSON(w io.Writer, data any) error {
 	b, err := json.MarshalIndent(&data, "", "  ")
@@ -962,4 +970,43 @@ func prettyPrintSearch(tw *tabwriter.Writer, search SearchOutput) error {
 		fmt.Fprint(os.Stderr, searchTips)
 	}
 	return nil
+}
+
+type WriteCounter struct {
+	ContentLength int64
+	TotalWritten  int64
+	Name          string
+}
+
+func (wc *WriteCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.TotalWritten += int64(n)
+	wc.PrintProgress()
+	return n, nil
+}
+
+func (wc *WriteCounter) PrintProgress() {
+	fmt.Printf("\r%s", strings.Repeat(" ", 70))
+	fmt.Printf("\rdownloaded %s of %s", humanizeBytes(wc.TotalWritten), wc.Name)
+}
+
+func humanizeBytes(b int64) string {
+	base := 1024.0
+	sizes := []string{" B", " KiB", " MiB", " GiB"}
+
+	if b < 10 {
+		return fmt.Sprintf("%d B", b)
+	}
+	e := math.Floor(logn(float64(b), base))
+	suffix := sizes[int(e)]
+	val := math.Floor(float64(b)/math.Pow(base, e)*10+0.5) / 10
+	f := "%.0f %s"
+	if val < 10 {
+		f = "%.1f %s"
+	}
+	return fmt.Sprintf(f, val, suffix)
+}
+
+func logn(n, b float64) float64 {
+	return math.Log(n) / math.Log(b)
 }

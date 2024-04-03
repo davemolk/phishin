@@ -12,13 +12,11 @@ import (
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 )
 
 type Client struct {
-	Tabwriter  *tabwriter.Writer
 	HTTPClient *http.Client
 	ErrGroup   *errgroup.Group
 	BaseURL    string
@@ -30,6 +28,7 @@ type Client struct {
 	Verbose    bool
 	Debug      bool
 	Download   bool
+	RawOutput  bool
 }
 
 func NewClient(apiKey string, output io.Writer) *Client {
@@ -38,7 +37,6 @@ func NewClient(apiKey string, output io.Writer) *Client {
 		BaseURL:    "https://phish.in/api/v1",
 		APIKey:     apiKey,
 		Output:     output,
-		Tabwriter:  tabwriter.NewWriter(output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns),
 		ErrGroup:   &errgroup.Group{},
 	}
 }
@@ -76,6 +74,8 @@ func (c *Client) fromArgs(args []string) error {
 	phishin.BoolVar(verbose, "v", false, "verbose output")
 	debug := phishin.Bool("debug", false, "print the url that the client is sending to the server")
 	download := phishin.Bool("d", false, "download (if applicable)")
+	raw := phishin.Bool("raw", false, "print full api json response")
+	phishin.BoolVar(raw, "r", false, "print full api json response")
 
 	phishin.Usage = func() {
 		fmt.Fprint(os.Stderr, usage)
@@ -91,6 +91,7 @@ func (c *Client) fromArgs(args []string) error {
 	c.Verbose = *verbose
 	c.Debug = *debug
 	c.Download = *download
+	c.RawOutput = *raw
 
 	path := args[0]
 	switch path {
@@ -157,6 +158,36 @@ func (c *Client) parseTag(tag string) {
 	}
 }
 
+func (c *Client) getAndPrintRaw(ctx context.Context, url string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("error building request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	authToken := c.APIKey
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	req.Header.Set("User-Agent", "https://github.com/davemolk/phishin")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			fmt.Fprint(os.Stderr, searchTips)
+		}
+		return fmt.Errorf("unexpected response status: %q", resp.Status)
+	}
+	g := &GenericResponse{}
+	json.NewDecoder(resp.Body).Decode(g)
+	b, err := json.MarshalIndent(g, "", "  ")
+	if err != nil {
+		return fmt.Errorf("unable to marshal json: %w", err)
+	}
+	fmt.Fprintln(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), string(b))
+	return nil
+}
+
 func (c *Client) Get(ctx context.Context, url string, data any) error {
 	if c.Debug {
 		fmt.Fprintln(c.Output, url)
@@ -185,6 +216,9 @@ func (c *Client) Get(ctx context.Context, url string, data any) error {
 
 func (c *Client) run(ctx context.Context, path string) error {
 	url := c.FormatURL(path)
+	if c.RawOutput {
+		return c.getAndPrintRaw(ctx, url)
+	}
 	switch path {
 	case erasPath:
 		if c.Query != "" {
@@ -356,7 +390,7 @@ func (c *Client) getAndPrintYears(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, years)
 	}
-	return prettyPrintYears(c.Tabwriter, years)
+	return prettyPrintYears(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), years)
 }
 
 func (c *Client) getYears(ctx context.Context, url string) (YearsOutput, error) {
@@ -378,7 +412,7 @@ func (c *Client) getAndPrintYear(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, shows)
 	}
-	return prettyPrintShows(c.Tabwriter, shows, c.Verbose)
+	return prettyPrintShows(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), shows, c.Verbose)
 }
 
 func (c *Client) getYear(ctx context.Context, url string) (ShowsOutput, error) {
@@ -397,7 +431,7 @@ func (c *Client) getAndPrintShows(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, shows)
 	}
-	return prettyPrintShows(c.Tabwriter, shows, c.Verbose)
+	return prettyPrintShows(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), shows, c.Verbose)
 }
 
 func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) {
@@ -420,7 +454,7 @@ func (c *Client) getAndPrintShow(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, show)
 	}
-	return prettyPrintShow(c.Tabwriter, show, c.Verbose)
+	return prettyPrintShow(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), show, c.Verbose)
 }
 
 func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
@@ -429,12 +463,15 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 		return ShowOutput{}, fmt.Errorf("unable to get show details: %w", err)
 	}
 	if c.Download {
+		if err := os.Mkdir(resp.Data.Date, 0755); err != nil {
+			return ShowOutput{}, fmt.Errorf("unable to create directory for downloaded files: %w", err)
+		}
 		for i, t := range resp.Data.Tracks {
 			// start track number with 1, capture loop vars locally
 			i, t := i+1, t
 			c.ErrGroup.Go(func() error {
 				fileName := fmt.Sprintf("%d-%s.mp3", i, t.Slug)
-				return c.DownloadTrack(ctx, t.Mp3, fileName)
+				return c.DownloadTrack(ctx, t.Mp3, fileName, resp.Data.Date)
 			})
 		}
 	}
@@ -449,7 +486,7 @@ func (c *Client) getAndPrintTours(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, tours)
 	}
-	return prettyPrintTours(c.Tabwriter, tours)
+	return prettyPrintTours(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tours)
 }
 
 func (c *Client) getTours(ctx context.Context, url string) (ToursOutput, error) {
@@ -468,7 +505,7 @@ func (c *Client) getAndPrintTour(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, tour)
 	}
-	return prettyPrintTour(c.Tabwriter, tour)
+	return prettyPrintTour(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tour)
 }
 
 func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
@@ -495,7 +532,7 @@ func (c *Client) getAndPrintVenues(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, venues)
 	}
-	return prettyPrintVenues(c.Tabwriter, venues)
+	return prettyPrintVenues(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), venues)
 }
 
 func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error) {
@@ -523,7 +560,7 @@ func (c *Client) getAndPrintVenue(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, venue)
 	}
-	return prettyPrintVenue(c.Tabwriter, venue)
+	return prettyPrintVenue(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), venue)
 }
 
 func (c *Client) getVenue(ctx context.Context, url string) (VenueOutput, error) {
@@ -542,7 +579,7 @@ func (c *Client) getAndPrintTags(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, tags)
 	}
-	return prettyPrintTags(c.Tabwriter, tags)
+	return prettyPrintTags(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tags)
 }
 
 func (c *Client) getTags(ctx context.Context, url string) (TagsOutput, error) {
@@ -567,7 +604,7 @@ func (c *Client) getAndPrintTag(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, tag)
 	}
-	return prettyPrintTag(c.Tabwriter, tag)
+	return prettyPrintTag(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tag)
 }
 
 func (c *Client) getTag(ctx context.Context, url string) (TagListItemOutput, error) {
@@ -586,7 +623,7 @@ func (c *Client) getAndPrintSongs(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, songs)
 	}
-	return prettyPrintSongs(c.Tabwriter, songs)
+	return prettyPrintSongs(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), songs)
 }
 
 func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) {
@@ -616,7 +653,7 @@ func (c *Client) getAndPrintSong(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, song)
 	}
-	return prettyPrintSong(c.Tabwriter, song)
+	return prettyPrintSong(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), song)
 }
 
 func (c *Client) getSong(ctx context.Context, url string) (SongOutput, error) {
@@ -635,7 +672,7 @@ func (c *Client) getAndPrintTracks(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, tracks)
 	}
-	return prettyPrintTracks(c.Tabwriter, tracks)
+	return prettyPrintTracks(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tracks)
 }
 
 func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error) {
@@ -658,7 +695,7 @@ func (c *Client) getAndPrintTrack(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, track)
 	}
-	return prettyPrintTrack(c.Tabwriter, track)
+	return prettyPrintTrack(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), track)
 }
 
 func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) {
@@ -669,7 +706,7 @@ func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) 
 	if c.Download {
 		c.ErrGroup.Go(func() error {
 			fileName := fmt.Sprintf("%s.mp3", resp.Data.Slug)
-			return c.DownloadTrack(ctx, resp.Data.Mp3, fileName)
+			return c.DownloadTrack(ctx, resp.Data.Mp3, fileName, ".")
 		})
 	}
 	return convertTrackToOutput(resp.Data), nil
@@ -684,7 +721,7 @@ func (c *Client) getAndPrintSearch(ctx context.Context, url string) error {
 	if c.PrintJSON {
 		return printJSON(c.Output, result)
 	}
-	return prettyPrintSearch(c.Tabwriter, result)
+	return prettyPrintSearch(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), result)
 }
 
 func (c *Client) getSearch(ctx context.Context, url string) (SearchOutput, error) {
@@ -696,9 +733,10 @@ func (c *Client) getSearch(ctx context.Context, url string) (SearchOutput, error
 }
 
 // todo think about cleanup for cancelled context?
-func (c *Client) DownloadTrack(ctx context.Context, url, fileName string) error {
-	time.Sleep(4 * time.Second)
-	p := filepath.Join(c.Query, fileName)
+// todo handle progress counter differently when have concurrent downloads?
+// todo track percentage via ContentLength
+func (c *Client) DownloadTrack(ctx context.Context, url, fileName, dirName string) error {
+	p := filepath.Join(dirName, fileName)
 	f, err := os.Create(p)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -719,7 +757,11 @@ func (c *Client) DownloadTrack(ctx context.Context, url, fileName string) error 
 		return fmt.Errorf("received unexpected status code: %q", resp.Status)
 	}
 
-	_, err = io.Copy(f, resp.Body)
+	progress := &WriteCounter{
+		Name: fileName,
+	}
+	_, err = io.Copy(f, io.TeeReader(resp.Body, progress))
+	fmt.Println()
 	if err != nil {
 		return fmt.Errorf("unable to copy data to file: %w", err)
 	}

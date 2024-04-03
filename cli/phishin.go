@@ -169,13 +169,6 @@ func Run(args []string) int {
 		return 1
 	}
 
-	if c.Download {
-		if err := os.Mkdir(c.Query, 0755); err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("unable to create directory for downloaded files: %w", err))
-			return 1
-		}
-	}
-
 	// get context at this point?
 	// customize? or not...
 	c.ErrGroup.SetLimit(4)
