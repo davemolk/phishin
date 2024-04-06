@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,37 @@ import (
 	"reflect"
 	"testing"
 )
+
+var (
+	updateGolden = flag.Bool("update", false, "update golden files")
+)
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	os.Exit(m.Run())
+}
+
+func getGoldenValue(t *testing.T, goldenFile, actual string, update bool) string {
+	t.Helper()
+	path := "../testdata/" + goldenFile
+	f, err := os.OpenFile(path, os.O_RDWR, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = f.Close() }()
+	if update {
+		if _, err := f.WriteString(actual); err != nil {
+			t.Fatal(err)
+		}
+		return actual
+	}
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
 
 func TestFormatURL(t *testing.T) {
 	dummy := "dummy"
@@ -354,12 +386,6 @@ func TestGetAndPrintErasText(t *testing.T) {
 	c := NewClient("dummy", buf)
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Eras
-1.0: 1983-1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000
-2.0: 2002, 2003, 2004
-3.0: 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
-4.0: 2021, 2022, 2023
-`
 	ctx := context.Background()
 	url := c.FormatURL("eras")
 	err := c.getAndPrintEras(ctx, url)
@@ -367,6 +393,7 @@ func TestGetAndPrintErasText(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "eras.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got %s want %s", got, want)
 	}
@@ -385,19 +412,6 @@ func TestGetAndPrintErasJSON(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	c.PrintJSON = true
-	want := `{
-  "1.0": [
-    "1992",
-    "1993",
-    "1994",
-    "1995",
-    "1996"
-  ],
-  "2.0": null,
-  "3.0": null,
-  "4.0": null
-}
-`
 	ctx := context.Background()
 	url := c.FormatURL("eras")
 	err := c.getAndPrintEras(ctx, url)
@@ -405,6 +419,7 @@ func TestGetAndPrintErasJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "eras.json.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got %s want %s", got, want)
 	}
@@ -449,9 +464,6 @@ func TestGetAndPrintEraText(t *testing.T) {
 	c.BaseURL = ts.URL
 	c.Query = "3.0"
 	c.HTTPClient = ts.Client()
-	want := `Era 3.0:
-2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
-`
 	ctx := context.Background()
 	url := c.FormatURL("eras")
 	err := c.getAndPrintEra(ctx, url)
@@ -459,6 +471,7 @@ func TestGetAndPrintEraText(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "era.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got %s want %s", got, want)
 	}
@@ -478,24 +491,6 @@ func TestGetAndPrintEraJSON(t *testing.T) {
 	c.HTTPClient = ts.Client()
 	c.Query = "3.0"
 	c.PrintJSON = true
-	want := `{
-  "era": "3.0",
-  "years": [
-    "2009",
-    "2010",
-    "2011",
-    "2012",
-    "2013",
-    "2014",
-    "2015",
-    "2016",
-    "2017",
-    "2018",
-    "2019",
-    "2020"
-  ]
-}
-`
 	ctx := context.Background()
 	url := c.FormatURL("eras")
 	err := c.getAndPrintEra(ctx, url)
@@ -503,6 +498,7 @@ func TestGetAndPrintEraJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "era.json.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got %s want %s", got, want)
 	}
@@ -558,11 +554,6 @@ func TestGetAndPrintYearsText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Years:     Show Count:
-1983-1987  34
-1988       44
-1989       64
-`
 	ctx := context.Background()
 	url := c.FormatURL("years")
 	err := c.getAndPrintYears(ctx, url)
@@ -570,6 +561,7 @@ func TestGetAndPrintYearsText(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "years.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got %s want %s", got, want)
 	}
@@ -667,9 +659,6 @@ func TestGetAndPrintYearText(t *testing.T) {
 		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Date:       Venue:             Location:       Duration:
-1994-04-04  The Flynn Theatre  Burlington, VT  2h 40m
-`
 		ctx := context.Background()
 		c.Query = query
 		url := c.FormatURL(path)
@@ -678,6 +667,7 @@ func TestGetAndPrintYearText(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := buf.String()
+		want := getGoldenValue(t, "year.nonverbose.golden", got, *updateGolden)
 		if got != want {
 			t.Errorf("got \n%s want \n%s", got, want)
 		}
@@ -689,17 +679,15 @@ func TestGetAndPrintYearText(t *testing.T) {
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `ID:  Date:       Venue:             Location:       Duration:  Soundboard:  Remastered:
-135  1994-04-04  The Flynn Theatre  Burlington, VT  2h 40m     yes          no
-`
 		ctx := context.Background()
 		c.Query = query
 		url := c.FormatURL(path)
 		err := c.getAndPrintYear(ctx, url)
 		if err != nil {
 			t.Fatal(err)
-		}
+		} 
 		got := buf.String()
+		want := getGoldenValue(t, "year.verbose.golden", got, *updateGolden)
 		if got != want {
 			t.Errorf("got \n%s want \n%s", got, want)
 		}
@@ -803,14 +791,8 @@ func TestGetAndPrintShowsText(t *testing.T) {
 	t.Run("non-verbose", func(t *testing.T) {
 		buf := &bytes.Buffer{}
 		c := NewClient("dummy", buf)
-		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Date:       Venue:         Location:    Duration:
-1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m
-
-Total Entries: 1759  Total Pages: 88  Result Page: 1
-`
 		ctx := context.Background()
 		url := c.FormatURL("shows")
 		err := c.getAndPrintShows(ctx, url)
@@ -818,8 +800,9 @@ Total Entries: 1759  Total Pages: 88  Result Page: 1
 			t.Fatal(err)
 		}
 		got := buf.String()
+		want := getGoldenValue(t, "shows.nonverbose.golden", got, *updateGolden)
 		if got != want {
-			t.Errorf("got \n%s want \n%s", got, want)
+			t.Errorf("got\n%s want\n%s", got, want)
 		}
 	})
 	t.Run("verbose", func(t *testing.T) {
@@ -829,11 +812,6 @@ Total Entries: 1759  Total Pages: 88  Result Page: 1
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
-696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          no
-
-Total Entries: 1759  Total Pages: 88  Result Page: 1
-`
 		ctx := context.Background()
 		url := c.FormatURL("shows")
 		err := c.getAndPrintShows(ctx, url)
@@ -841,8 +819,9 @@ Total Entries: 1759  Total Pages: 88  Result Page: 1
 			t.Fatal(err)
 		}
 		got := buf.String()
+		want := getGoldenValue(t, "shows.verbose.golden", got, *updateGolden)
 		if got != want {
-			t.Errorf("got \n%s want \n%s", got, want)
+			t.Errorf("got\n%s want\n%s", got, want)
 		}
 	})
 }
@@ -965,38 +944,6 @@ func TestGetAndPrintShowText(t *testing.T) {
 		c.Output = buf
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
-		want := `Date:       Venue:         Location:
-1990-04-05  J.J. McCabe's  Boulder, CO
-
-Set 1
-Possum                   6m 48s
-Ya Mar                   7m 7s
-David Bowie              11m 23s
-Carolina                 2m 1s
-The Oh Kee Pa Ceremony   1m 45s
-Suzy Greenberg           5m 19s
-You Enjoy Myself         12m 40s
-The Lizards              10m 12s
-Fire                     4m 20s
-
-Set 2
-Reba                     11m 39s
-Uncle Pen                5m 14s
-Jesus Just Left Chicago  8m 10s
-AC/DC Bag                6m 23s
-Donna Lee                3m 24s
-Tweezer                  10m 0s
-Fee                      5m 14s
-Cavern                   4m 59s
-Mike's Song              6m 23s
-I Am Hydrogen            2m 19s
-Weekapaug Groove         7m 35s
-If I Only Had a Brain    3m 10s
-Contact                  6m 21s
-
-Encore
-Golgi Apparatus          4m 41s
-`
 		ctx := context.Background()
 		c.Query = query
 		url := c.FormatURL(path)
@@ -1005,6 +952,7 @@ Golgi Apparatus          4m 41s
 			t.Fatal(err)
 		}
 		got := buf.String()
+		want := getGoldenValue(t, "show.nonverbose.golden", got, *updateGolden)
 		if got != want {
 			t.Errorf("got \n%s want \n%s", got, want)
 		}
@@ -1016,135 +964,6 @@ Golgi Apparatus          4m 41s
 		c.BaseURL = ts.URL
 		c.HTTPClient = ts.Client()
 		c.Verbose = true
-		want := `ID:  Date:       Venue:         Location:    Duration:  Soundboard:  Remastered:
-696  1990-04-05  J.J. McCabe's  Boulder, CO  2h 27m     yes          no
-
-Show Tags:
-SBD
-
-Set 1
-Possum                   6m 48s
-Ya Mar                   7m 7s
-David Bowie              11m 23s
-Carolina                 2m 1s
-The Oh Kee Pa Ceremony   1m 45s
-Suzy Greenberg           5m 19s
-You Enjoy Myself         12m 40s
-The Lizards              10m 12s
-Fire                     4m 20s
-
-Set 2
-Reba                     11m 39s
-Uncle Pen                5m 14s
-Jesus Just Left Chicago  8m 10s
-AC/DC Bag                6m 23s
-Donna Lee                3m 24s
-Tweezer                  10m 0s
-Fee                      5m 14s
-Cavern                   4m 59s
-Mike's Song              6m 23s
-I Am Hydrogen            2m 19s
-Weekapaug Groove         7m 35s
-If I Only Had a Brain    3m 10s
-Contact                  6m 21s
-
-Encore
-Golgi Apparatus          4m 41s
-
-Track Info:
-Possum
-https://phish.in/audio/000/014/073/14073.mp3
-SBD
-
-Ya Mar
-https://phish.in/audio/000/014/074/14074.mp3
-SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston
-
-David Bowie
-https://phish.in/audio/000/014/075/14075.mp3
-SBD, Tease: Theme from Bonanza by Ray Evans and Jay Livingston, Tease: Wipe Out by The Surfaris
-
-Carolina
-https://phish.in/audio/000/014/076/14076.mp3
-SBD, A Cappella
-
-The Oh Kee Pa Ceremony
-https://phish.in/audio/000/014/077/14077.mp3
-SBD
-
-Suzy Greenberg
-https://phish.in/audio/000/014/078/14078.mp3
-SBD
-
-You Enjoy Myself
-https://phish.in/audio/000/014/079/14079.mp3
-SBD, Tease: Flash Light by Parliament
-
-The Lizards
-https://phish.in/audio/000/014/080/14080.mp3
-SBD
-
-Fire
-https://phish.in/audio/000/014/081/14081.mp3
-SBD
-
-Reba
-https://phish.in/audio/000/014/082/14082.mp3
-SBD
-
-Uncle Pen
-https://phish.in/audio/000/014/083/14083.mp3
-SBD
-
-Jesus Just Left Chicago
-https://phish.in/audio/000/014/084/14084.mp3
-SBD, Guest: Dan Mosebee on harmonica
-
-AC/DC Bag
-https://phish.in/audio/000/014/085/14085.mp3
-SBD
-
-Donna Lee
-https://phish.in/audio/000/014/086/14086.mp3
-SBD
-
-Tweezer
-https://phish.in/audio/000/014/087/14087.mp3
-SBD, Tease: Dave's Energy Guide
-
-Fee
-https://phish.in/audio/000/014/088/14088.mp3
-SBD
-
-Cavern
-https://phish.in/audio/000/014/089/14089.mp3
-SBD, Alt Lyric: "...taking turns at *stabbing* her; the brothel wife then grabbed the knife and slashed me on the tongue; I turned the blade back on the bitch and dropped her in the dung...a cushion convector, a *penile collector*..."
-
-Mike's Song
-https://phish.in/audio/000/014/090/14090.mp3
-SBD
-
-I Am Hydrogen
-https://phish.in/audio/000/014/091/14091.mp3
-SBD
-
-Weekapaug Groove
-https://phish.in/audio/000/014/092/14092.mp3
-SBD
-
-If I Only Had a Brain
-https://phish.in/audio/000/014/093/14093.mp3
-SBD
-
-Contact
-https://phish.in/audio/000/014/094/14094.mp3
-SBD
-
-Golgi Apparatus
-https://phish.in/audio/000/014/095/14095.mp3
-SBD
-
-`
 		ctx := context.Background()
 		c.Query = query
 		url := c.FormatURL(path)
@@ -1153,6 +972,7 @@ SBD
 			t.Fatal(err)
 		}
 		got := buf.String()
+		want := getGoldenValue(t, "show.verbose.golden", got, *updateGolden)
 		if got != want {
 			t.Errorf("got \n%s want \n%s", got, want)
 		}
@@ -1211,12 +1031,6 @@ func TestGetAndPrintVenuesText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Venue:                                 Location:     Show Count:
-The Base Lodge, Johnson State College  Johnson, VT   2
-The Academy                            New York, NY  1
-
-Total Entries: 666  Total Pages: 34  Result Page: 1
-`
 	ctx := context.Background()
 	url := c.FormatURL("venues")
 	err := c.getAndPrintVenues(ctx, url)
@@ -1224,10 +1038,10 @@ Total Entries: 666  Total Pages: 34  Result Page: 1
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "venues.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
-
 }
 
 func TestGetVenue(t *testing.T) {
@@ -1280,12 +1094,6 @@ func TestGetAndPrintVenueText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Venue:       Location:     Show Count:
-The Academy  New York, NY  1
-
-Show Dates
-1991-07-15
-`
 	ctx := context.Background()
 	c.Query = query
 	url := c.FormatURL(path)
@@ -1294,6 +1102,7 @@ Show Dates
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "venue.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1346,10 +1155,6 @@ func TestGetAndPrintTagsText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Name:     Description:                                   Group:
-Costume   Musical costume sequence                       Set Content
-Audience  Contribution from audience during performance  Song Content
-`
 	ctx := context.Background()
 	url := c.FormatURL("tags")
 	err := c.getAndPrintTags(ctx, url)
@@ -1357,6 +1162,7 @@ Audience  Contribution from audience during performance  Song Content
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "tags.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1414,15 +1220,6 @@ func TestGetAndPrintTagText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Name:      Description:                                           Group:
-Jamcharts  Phish.net Jam Charts selections (phish.net/jamcharts)  Curated Selections
-
-Show IDs Where Jamcharts Appears
-3
-
-Track IDs Where Jamcharts Appears
-1, 2
-`
 	ctx := context.Background()
 	c.Query = query
 	url := c.FormatURL(path)
@@ -1431,6 +1228,7 @@ Track IDs Where Jamcharts Appears
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "tag.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1525,10 +1323,6 @@ func TestGetAndPrintToursText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Name:      Starts On:  Ends On:    Shows Count:
-1983 Tour  1983-12-02  1983-12-02  1
-1984 Tour  1984-11-03  1984-12-01  2
-`
 	ctx := context.Background()
 	url := c.FormatURL("tours")
 	err := c.getAndPrintTours(ctx, url)
@@ -1536,10 +1330,10 @@ func TestGetAndPrintToursText(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "tours.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
-
 }
 
 func TestGetTour(t *testing.T) {
@@ -1606,12 +1400,6 @@ func TestGetAndPrintTourText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Name:      Starts On:  Ends On:    Show Count:
-1985 Tour  1985-03-04  1985-11-23  6
-
-ID:  Date:       Venue:  Location:       Duration:  Soundboard:  Remastered:
-3    1985-03-04  Hunt's  Burlington, VT  40m 14s    yes          no
-`
 	ctx := context.Background()
 	c.Query = query
 	url := c.FormatURL(path)
@@ -1620,6 +1408,7 @@ ID:  Date:       Venue:  Location:       Duration:  Soundboard:  Remastered:
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "tour.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1679,12 +1468,6 @@ func TestGetAndPrintSongsText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Title:          Original Artist:  TracksCount:
-Billy Breathes  Phish             64
-Arc             Arctic Monkeys    0
-
-Total Entries: 942  Total Pages: 48  Result Page: 1
-`
 	ctx := context.Background()
 	url := c.FormatURL("songs")
 	err := c.getAndPrintSongs(ctx, url)
@@ -1692,6 +1475,7 @@ Total Entries: 942  Total Pages: 48  Result Page: 1
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "songs.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1771,13 +1555,6 @@ func TestGetAndPrintSongText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `Title:       ID:  Original Artist:  TracksCount:
-David Bowie  979  Phish             447
-
-Tracks
-ID:  Date:       Venue:                           Location:       Duration:  Mp3
-115  1986-10-31  Sculpture Room, Goddard College  Plainfield, VT  10m 19s    https://phish.in/audio/000/000/115/115.mp3
-`
 	ctx := context.Background()
 	c.Query = query
 	url := c.FormatURL(path)
@@ -1786,6 +1563,7 @@ ID:  Date:       Venue:                           Location:       Duration:  Mp3
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "song.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1863,12 +1641,6 @@ func TestGetAndPrintTracksText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `ID:   Date:       Venue:                            Location:        Title:  Mp3:
-4270  1994-10-07  Stabler Arena, Lehigh University  Bethlehem, PA    Maze    https://phish.in/audio/000/004/270/4270.mp3
-6693  1993-04-09  State Theatre                     Minneapolis, MN  Stash   https://phish.in/audio/000/006/693/6693.mp3
-
-Total Entries: 35069  Total Pages: 1754  Result Page: 1
-`
 	ctx := context.Background()
 	url := c.FormatURL("tracks")
 	err := c.getAndPrintTracks(ctx, url)
@@ -1876,6 +1648,7 @@ Total Entries: 35069  Total Pages: 1754  Result Page: 1
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "tracks.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -1946,14 +1719,6 @@ func TestGetAndPrintTrackText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `ID:   Date:       Venue:         Location:        Title:  Duration  Set    Mp3
-6693  1993-04-09  State Theatre  Minneapolis, MN  Stash   11m 15s   Set 1  https://phish.in/audio/000/006/693/6693.mp3
-
-Tags
-Name:      Group:              Notes:
-SBD        Audio               
-Jamcharts  Curated Selections  Several minutes of growly, percussive, dissonant, and atypical jamming.
-`
 	ctx := context.Background()
 	c.Query = query
 	url := c.FormatURL(path)
@@ -1962,6 +1727,7 @@ Jamcharts  Curated Selections  Several minutes of growly, percussive, dissonant,
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "track.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
@@ -2041,23 +1807,6 @@ func TestGetAndPrintSearchText(t *testing.T) {
 	c.Output = buf
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
-	want := `*** TRACK TAG RESULTS ***
-ID:    TrackID:  TagID:
-54793  10882     16
-
-Notes:
-Colonel Forbin braves thousands of falling rocks and boulders, their collective force transforming the mountainside into the face of the Great and Knowledgeable Icculus, who, in an act of benevolence, calls upon the Famous Mockingbird to retrieve the Helping Friendly Book and save the people of Gamehendge.
-
-Transcript:
-TREY: Okay, outside right now it's snowing, there's clouds in the sky. Come with us now, lifting up slowly, off the ground. Picture outside this building, thousands, you know, hundreds of miles of clouds over us right now, snow coming down over us cold. Slowly we're lifting up... You can see up above; looking down, looking down you see the building and the streets going by and bodies of water.
-
-
-*** VENUE RESULTS ***
-Venue:                                    Location:    Show Count:
-Balch Fieldhouse, University of Colorado  Boulder, CO  2
-
-
-`
 	ctx := context.Background()
 	c.Query = query
 	url := c.FormatURL(path)
@@ -2066,6 +1815,7 @@ Balch Fieldhouse, University of Colorado  Boulder, CO  2
 		t.Fatal(err)
 	}
 	got := buf.String()
+	want := getGoldenValue(t, "search.golden", got, *updateGolden)
 	if got != want {
 		t.Errorf("got \n%s want \n%s", got, want)
 	}
