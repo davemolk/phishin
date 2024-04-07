@@ -348,6 +348,242 @@ func TestFromArgs(t *testing.T) {
 	})
 }
 
+func TestClientRun(t *testing.T) {
+	c := NewClient("dummy", nil)
+	tt := []struct {
+		name      string
+		serveFile string
+		path      string
+		golden    string
+		json      bool
+		verbose   bool
+		query     string
+	}{
+		{
+			name:      "eras",
+			serveFile: "../testdata/eras.json",
+			path:      "eras",
+			golden:    "eras.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "eras json",
+			serveFile: "../testdata/simple_eras.json",
+			path:      "eras",
+			golden:    "eras.json.golden",
+			json:      true,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "era",
+			serveFile: "../testdata/era.json",
+			path:      "eras",
+			golden:    "era.golden",
+			json:      false,
+			verbose:   false,
+			query:     "3.0",
+		},
+		{
+			name:      "era",
+			serveFile: "../testdata/era.json",
+			path:      "eras",
+			golden:    "era.json.golden",
+			json:      true,
+			verbose:   false,
+			query:     "3.0",
+		},
+		{
+			name:      "years",
+			serveFile: "../testdata/years.json",
+			path:      "years",
+			golden:    "years.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "year non-verbose",
+			serveFile: "../testdata/year.json",
+			path:      "years",
+			golden:    "year.nonverbose.golden",
+			json:      false,
+			verbose:   false,
+			query:     "1994",
+		},
+		{
+			name:      "year verbose",
+			serveFile: "../testdata/year.json",
+			path:      "years",
+			golden:    "year.verbose.golden",
+			json:      false,
+			verbose:   true,
+			query:     "1994",
+		},
+		{
+			name:      "shows non-verbose",
+			serveFile: "../testdata/shows.json",
+			path:      "shows",
+			golden:    "shows.nonverbose.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "shows verbose",
+			serveFile: "../testdata/shows.json",
+			path:      "shows",
+			golden:    "shows.verbose.golden",
+			json:      false,
+			verbose:   true,
+			query:     "",
+		},
+		{
+			name:      "show non-verbose",
+			serveFile: "../testdata/show.json",
+			path:      "shows",
+			golden:    "show.nonverbose.golden",
+			json:      false,
+			verbose:   false,
+			query:     "1990-04-05",
+		},
+		{
+			name:      "show verbose",
+			serveFile: "../testdata/show.json",
+			path:      "shows",
+			golden:    "show.verbose.golden",
+			json:      false,
+			verbose:   true,
+			query:     "1990-04-05",
+		},
+		{
+			name:      "venues",
+			serveFile: "../testdata/venues.json",
+			path:      "venues",
+			golden:    "venues.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "venue",
+			serveFile: "../testdata/venue.json",
+			path:      "venues",
+			golden:    "venue.golden",
+			json:      false,
+			verbose:   false,
+			query:     "the-academy",
+		},
+		{
+			name:      "tags",
+			serveFile: "../testdata/tags.json",
+			path:      "tags",
+			golden:    "tags.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "tag",
+			serveFile: "../testdata/tag.json",
+			path:      "tags",
+			golden:    "tag.golden",
+			json:      false,
+			verbose:   false,
+			query:     "jamcharts",
+		},
+		{
+			name:      "tours",
+			serveFile: "../testdata/tours.json",
+			path:      "tours",
+			golden:    "tours.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "tour",
+			serveFile: "../testdata/tour.json",
+			path:      "tours",
+			golden:    "tour.golden",
+			json:      false,
+			verbose:   false,
+			query:     "1985-tour",
+		},
+		{
+			name:      "songs",
+			serveFile: "../testdata/songs.json",
+			path:      "songs",
+			golden:    "songs.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "song",
+			serveFile: "../testdata/song.json",
+			path:      "songs",
+			golden:    "song.golden",
+			json:      false,
+			verbose:   false,
+			query:     "david-bowie",
+		},
+		{
+			name:      "tracks",
+			serveFile: "../testdata/tracks.json",
+			path:      "tracks",
+			golden:    "tracks.golden",
+			json:      false,
+			verbose:   false,
+			query:     "",
+		},
+		{
+			name:      "track",
+			serveFile: "../testdata/track.json",
+			path:      "tracks",
+			golden:    "track.golden",
+			json:      false,
+			verbose:   false,
+			query:     "stash",
+		},
+		{
+			name:      "search",
+			serveFile: "../testdata/boulder_search.json",
+			path:      "search",
+			golden:    "search.golden",
+			json:      false,
+			verbose:   false,
+			query:     "boulder",
+		},
+	}
+	for _, tc := range tt {
+		ctx := context.Background()
+		buf := &bytes.Buffer{}
+		c.Output = buf
+		c.PrintJSON = tc.json
+		c.Verbose = tc.verbose
+		c.Query = tc.query
+		ts := httptest.NewTLSServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				http.ServeFile(w, r, tc.serveFile)
+			}))
+		defer ts.Close()
+		c.BaseURL = ts.URL
+		c.HTTPClient = ts.Client()
+		err := c.run(ctx, tc.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := buf.String()
+		want := getGoldenValue(t, tc.golden, got, *updateGolden)
+		if got != want {
+			t.Errorf("got\n%s want\n%s", got, want)
+		}
+	}
+}
+
 func TestGetEras(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewTLSServer(http.HandlerFunc(
@@ -355,7 +591,8 @@ func TestGetEras(t *testing.T) {
 			http.ServeFile(w, r, "../testdata/eras.json")
 		}))
 	defer ts.Close()
-	c := NewClient("dummy", os.Stdout)
+	buf := &bytes.Buffer{}
+	c := NewClient("dummy", buf)
 	c.BaseURL = ts.URL
 	c.HTTPClient = ts.Client()
 	want := ErasOutput{
@@ -372,56 +609,6 @@ func TestGetEras(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func TestGetAndPrintErasText(t *testing.T) {
-	t.Parallel()
-	buf := &bytes.Buffer{}
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/eras.json")
-		}))
-	defer ts.Close()
-	c := NewClient("dummy", buf)
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("eras")
-	err := c.getAndPrintEras(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "eras.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got %s want %s", got, want)
-	}
-}
-
-func TestGetAndPrintErasJSON(t *testing.T) {
-	t.Parallel()
-	buf := &bytes.Buffer{}
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/simple_eras.json")
-		}))
-	defer ts.Close()
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	c.PrintJSON = true
-	ctx := context.Background()
-	url := c.FormatURL("eras")
-	err := c.getAndPrintEras(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "eras.json.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got %s want %s", got, want)
 	}
 }
 
@@ -448,59 +635,6 @@ func TestGetEra(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func TestGetAndPrintEraText(t *testing.T) {
-	t.Parallel()
-	buf := &bytes.Buffer{}
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/era.json")
-		}))
-	defer ts.Close()
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.Query = "3.0"
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("eras")
-	err := c.getAndPrintEra(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "era.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got %s want %s", got, want)
-	}
-}
-
-func TestGetAndPrintEraJSON(t *testing.T) {
-	t.Parallel()
-	buf := &bytes.Buffer{}
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/era.json")
-		}))
-	defer ts.Close()
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	c.Query = "3.0"
-	c.PrintJSON = true
-	ctx := context.Background()
-	url := c.FormatURL("eras")
-	err := c.getAndPrintEra(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "era.json.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got %s want %s", got, want)
 	}
 }
 
@@ -539,31 +673,6 @@ func TestGetYears(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func TestGetAndPrintYearsText(t *testing.T) {
-	t.Parallel()
-	buf := &bytes.Buffer{}
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/years.json")
-		}))
-	defer ts.Close()
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("years")
-	err := c.getAndPrintYears(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "years.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got %s want %s", got, want)
 	}
 }
 
@@ -639,59 +748,6 @@ func TestGetYear(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got \n%v want \n%v", got, want)
 	}
-}
-
-func TestGetAndPrintYearText(t *testing.T) {
-	t.Parallel()
-	query := "1994"
-	path := "years"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/year.json")
-		}))
-	defer ts.Close()
-	t.Run("non-verbose", func(t *testing.T) {
-		buf := &bytes.Buffer{}
-		c := NewClient("dummy", buf)
-		c.Output = buf
-		c.BaseURL = ts.URL
-		c.HTTPClient = ts.Client()
-		ctx := context.Background()
-		c.Query = query
-		url := c.FormatURL(path)
-		err := c.getAndPrintYear(ctx, url)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := buf.String()
-		want := getGoldenValue(t, "year.nonverbose.golden", got, *updateGolden)
-		if got != want {
-			t.Errorf("got \n%s want \n%s", got, want)
-		}
-	})
-	t.Run("verbose", func(t *testing.T) {
-		buf := &bytes.Buffer{}
-		c := NewClient("dummy", buf)
-		c.Output = buf
-		c.BaseURL = ts.URL
-		c.HTTPClient = ts.Client()
-		c.Verbose = true
-		ctx := context.Background()
-		c.Query = query
-		url := c.FormatURL(path)
-		err := c.getAndPrintYear(ctx, url)
-		if err != nil {
-			t.Fatal(err)
-		} 
-		got := buf.String()
-		want := getGoldenValue(t, "year.verbose.golden", got, *updateGolden)
-		if got != want {
-			t.Errorf("got \n%s want \n%s", got, want)
-		}
-	})
 }
 
 func TestGetShows(t *testing.T) {
@@ -779,51 +835,6 @@ func TestGetShows(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
 	}
-}
-
-func TestGetAndPrintShowsText(t *testing.T) {
-	t.Parallel()
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/shows.json")
-		}))
-	defer ts.Close()
-	t.Run("non-verbose", func(t *testing.T) {
-		buf := &bytes.Buffer{}
-		c := NewClient("dummy", buf)
-		c.BaseURL = ts.URL
-		c.HTTPClient = ts.Client()
-		ctx := context.Background()
-		url := c.FormatURL("shows")
-		err := c.getAndPrintShows(ctx, url)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := buf.String()
-		want := getGoldenValue(t, "shows.nonverbose.golden", got, *updateGolden)
-		if got != want {
-			t.Errorf("got\n%s want\n%s", got, want)
-		}
-	})
-	t.Run("verbose", func(t *testing.T) {
-		buf := &bytes.Buffer{}
-		c := NewClient("dummy", buf)
-		c.Output = buf
-		c.BaseURL = ts.URL
-		c.HTTPClient = ts.Client()
-		c.Verbose = true
-		ctx := context.Background()
-		url := c.FormatURL("shows")
-		err := c.getAndPrintShows(ctx, url)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := buf.String()
-		want := getGoldenValue(t, "shows.verbose.golden", got, *updateGolden)
-		if got != want {
-			t.Errorf("got\n%s want\n%s", got, want)
-		}
-	})
 }
 
 func TestGetShow(t *testing.T) {
@@ -926,59 +937,6 @@ func TestGetShow(t *testing.T) {
 	}
 }
 
-func TestGetAndPrintShowText(t *testing.T) {
-	t.Parallel()
-	query := "1990-04-05"
-	path := "shows"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/show.json")
-		}))
-	defer ts.Close()
-	t.Run("non-verbose", func(t *testing.T) {
-		buf := &bytes.Buffer{}
-		c := NewClient("dummy", buf)
-		c.Output = buf
-		c.BaseURL = ts.URL
-		c.HTTPClient = ts.Client()
-		ctx := context.Background()
-		c.Query = query
-		url := c.FormatURL(path)
-		err := c.getAndPrintShow(ctx, url)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := buf.String()
-		want := getGoldenValue(t, "show.nonverbose.golden", got, *updateGolden)
-		if got != want {
-			t.Errorf("got \n%s want \n%s", got, want)
-		}
-	})
-	t.Run("verbose", func(t *testing.T) {
-		buf := &bytes.Buffer{}
-		c := NewClient("dummy", buf)
-		c.Output = buf
-		c.BaseURL = ts.URL
-		c.HTTPClient = ts.Client()
-		c.Verbose = true
-		ctx := context.Background()
-		c.Query = query
-		url := c.FormatURL(path)
-		err := c.getAndPrintShow(ctx, url)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := buf.String()
-		want := getGoldenValue(t, "show.verbose.golden", got, *updateGolden)
-		if got != want {
-			t.Errorf("got \n%s want \n%s", got, want)
-		}
-	})
-}
-
 func TestGetVenues(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewTLSServer(http.HandlerFunc(
@@ -1019,31 +977,6 @@ func TestGetVenues(t *testing.T) {
 	}
 }
 
-func TestGetAndPrintVenuesText(t *testing.T) {
-	t.Parallel()
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/venues.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("venues")
-	err := c.getAndPrintVenues(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "venues.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
-	}
-}
-
 func TestGetVenue(t *testing.T) {
 	t.Parallel()
 	query := "the-academy"
@@ -1074,37 +1007,6 @@ func TestGetVenue(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func TestGetAndPrintVenueText(t *testing.T) {
-	t.Parallel()
-	query := "the-academy"
-	path := "venues"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/venue.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	c.Query = query
-	url := c.FormatURL(path)
-	err := c.getAndPrintVenue(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "venue.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
 
@@ -1143,32 +1045,6 @@ func TestGetTags(t *testing.T) {
 	}
 }
 
-func TestGetAndPrintTagsText(t *testing.T) {
-	t.Parallel()
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/tags.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("tags")
-	err := c.getAndPrintTags(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "tags.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
-	}
-
-}
-
 func TestGetTag(t *testing.T) {
 	t.Parallel()
 	query := "jamcharts"
@@ -1200,37 +1076,6 @@ func TestGetTag(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func TestGetAndPrintTagText(t *testing.T) {
-	t.Parallel()
-	query := "jamcharts"
-	path := "tags"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/tag.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	c.Query = query
-	url := c.FormatURL(path)
-	err := c.getAndPrintTag(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "tag.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
 
@@ -1311,31 +1156,6 @@ func TestGetTours(t *testing.T) {
 	}
 }
 
-func TestGetAndPrintToursText(t *testing.T) {
-	t.Parallel()
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/tours.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("tours")
-	err := c.getAndPrintTours(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "tours.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
-	}
-}
-
 func TestGetTour(t *testing.T) {
 	t.Parallel()
 	query := "1985-tour"
@@ -1383,37 +1203,6 @@ func TestGetTour(t *testing.T) {
 	}
 }
 
-func TestGetAndPrintTourText(t *testing.T) {
-	t.Parallel()
-	query := "1985-tour"
-	path := "tours"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/tour.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	c.Query = query
-	url := c.FormatURL(path)
-	err := c.getAndPrintTour(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "tour.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
-	}
-}
-
 func TestGetSongs(t *testing.T) {
 	t.Parallel()
 	ts := httptest.NewTLSServer(http.HandlerFunc(
@@ -1453,31 +1242,6 @@ func TestGetSongs(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got \n%v \nwant\n%v", got, want)
-	}
-}
-
-func TestGetAndPrintSongsText(t *testing.T) {
-	t.Parallel()
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/songs.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("songs")
-	err := c.getAndPrintSongs(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "songs.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
 
@@ -1535,37 +1299,6 @@ func TestGetSong(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got \n%v \nwant\n%v", got, want)
-	}
-}
-
-func TestGetAndPrintSongText(t *testing.T) {
-	t.Parallel()
-	query := "david-bowie"
-	path := "songs"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/song.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	c.Query = query
-	url := c.FormatURL(path)
-	err := c.getAndPrintSong(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "song.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
 
@@ -1629,31 +1362,6 @@ func TestGetTracks(t *testing.T) {
 	}
 }
 
-func TestGetAndPrintTracksText(t *testing.T) {
-	t.Parallel()
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "../testdata/tracks.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	url := c.FormatURL("tracks")
-	err := c.getAndPrintTracks(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "tracks.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
-	}
-}
-
 func TestGetTrack(t *testing.T) {
 	t.Parallel()
 	query := "stash"
@@ -1699,37 +1407,6 @@ func TestGetTrack(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got \n%v \nwant\n%v", got, want)
-	}
-}
-
-func TestGetAndPrintTrackText(t *testing.T) {
-	t.Parallel()
-	query := "stash"
-	path := "tracks"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/track.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	c.Query = query
-	url := c.FormatURL(path)
-	err := c.getAndPrintTrack(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "track.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }
 
@@ -1787,36 +1464,5 @@ func TestGetSearch(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got \n%v \nwant\n%v", got, want)
-	}
-}
-
-func TestGetAndPrintSearchText(t *testing.T) {
-	t.Parallel()
-	query := "boulder"
-	path := "search"
-	ts := httptest.NewTLSServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != fmt.Sprintf("/%s/%s", path, query) {
-				t.Fatalf("wrong url: %s", r.URL.Path)
-			}
-			http.ServeFile(w, r, "../testdata/boulder_search.json")
-		}))
-	defer ts.Close()
-	buf := &bytes.Buffer{}
-	c := NewClient("dummy", buf)
-	c.Output = buf
-	c.BaseURL = ts.URL
-	c.HTTPClient = ts.Client()
-	ctx := context.Background()
-	c.Query = query
-	url := c.FormatURL(path)
-	err := c.getAndPrintSearch(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	want := getGoldenValue(t, "search.golden", got, *updateGolden)
-	if got != want {
-		t.Errorf("got \n%s want \n%s", got, want)
 	}
 }

@@ -219,130 +219,114 @@ func (c *Client) run(ctx context.Context, path string) error {
 	if c.RawOutput {
 		return c.getAndPrintRaw(ctx, url)
 	}
-	switch path {
-	case erasPath:
-		if c.Query != "" {
-			if err := c.getAndPrintEra(ctx, url); err != nil {
-				return fmt.Errorf("era details failure: %w", err)
-			}
-			return nil
+	var results PrettyPrinter
+	var err error
+	switch {
+	case path == erasPath && c.Query != "":
+		results, err = c.getEra(ctx, url)
+		if err != nil {
+			return fmt.Errorf("era details failure: %w", err)
 		}
-		if err := c.getAndPrintEras(ctx, url); err != nil {
+	case path == erasPath:
+		results, err = c.getEras(ctx, url)
+		if err != nil {
 			return fmt.Errorf("eras list failure: %w", err)
 		}
-		return nil
-	case yearsPath:
-		if c.Query != "" {
-			if err := c.getAndPrintYear(ctx, url); err != nil {
-				return fmt.Errorf("year details failure: %w", err)
-			}
-			return nil
+	case path == yearsPath && c.Query != "":
+		results, err = c.getYear(ctx, url)
+		if err != nil {
+			return fmt.Errorf("year details failure: %w", err)
 		}
-		if err := c.getAndPrintYears(ctx, url); err != nil {
+	case path == yearsPath:
+		results, err = c.getYears(ctx, url)
+		if err != nil {
 			return fmt.Errorf("years list failure: %w", err)
 		}
-		return nil
-	case songsPath:
-		if c.Query != "" {
-			if err := c.getAndPrintSong(ctx, url); err != nil {
-				return fmt.Errorf("song details failure: %w", err)
-			}
-			return nil
+	case path == songsPath && c.Query != "":
+		results, err = c.getSong(ctx, url)
+		if err != nil {
+			return fmt.Errorf("song details failure: %w", err)
 		}
-		if err := c.getAndPrintSongs(ctx, url); err != nil {
+	case path == songsPath:
+		results, err = c.getSongs(ctx, url)
+		if err != nil {
 			return fmt.Errorf("songs list failure: %w", err)
 		}
-		return nil
-	case toursPath:
-		if c.Query != "" {
-			if err := c.getAndPrintTour(ctx, url); err != nil {
-				return fmt.Errorf("tour details failure: %w", err)
-			}
-			return nil
+	case path == toursPath && c.Query != "":
+		results, err = c.getTour(ctx, url)
+		if err != nil {
+			return fmt.Errorf("tour details failure: %w", err)
 		}
-		if err := c.getAndPrintTours(ctx, url); err != nil {
+	case path == toursPath:
+		results, err = c.getTours(ctx, url)
+		if err != nil {
 			return fmt.Errorf("tours list failure: %w", err)
 		}
-		return nil
-	case venuesPath:
-		if c.Query != "" {
-			if err := c.getAndPrintVenue(ctx, url); err != nil {
-				return fmt.Errorf("venue details failure: %w", err)
-			}
-			return nil
+	case path == venuesPath && c.Query != "":
+		results, err = c.getVenue(ctx, url)
+		if err != nil {
+			return fmt.Errorf("venue details failure: %w", err)
 		}
-		if err := c.getAndPrintVenues(ctx, url); err != nil {
+	case path == venuesPath:
+		results, err = c.getVenues(ctx, url)
+		if err != nil {
 			return fmt.Errorf("venues list failure: %w", err)
 		}
-		return nil
-	case showsPath:
-		if c.Query != "" {
-			if err := c.getAndPrintShow(ctx, url); err != nil {
-				return fmt.Errorf("show details failure: %w", err)
-			}
-			return nil
-		}
-		if err := c.getAndPrintShows(ctx, url); err != nil {
-			return fmt.Errorf("shows list failure: %w", err)
-		}
-		return nil
-	case showOnDatePath:
-		if err := c.getAndPrintShow(ctx, url); err != nil {
+	case path == showsPath && c.Query != "":
+		results, err = c.getShow(ctx, url)
+		if err != nil {
 			return fmt.Errorf("show details failure: %w", err)
 		}
-		return nil
-	case showsDayOfYearPath:
-		if err := c.getAndPrintShows(ctx, url); err != nil {
+	// todo consolidate these
+	case path == showsPath:
+		results, err = c.getShows(ctx, url)
+		if err != nil {
 			return fmt.Errorf("shows list failure: %w", err)
 		}
-		return nil
-	case randomShowPath:
-		if err := c.getAndPrintShow(ctx, url); err != nil {
+	case path == showOnDatePath:
+		results, err = c.getShow(ctx, url)
+		if err != nil {
 			return fmt.Errorf("show details failure: %w", err)
 		}
-		return nil
-	case tracksPath:
-		if c.Query != "" {
-			if err := c.getAndPrintTrack(ctx, url); err != nil {
-				return fmt.Errorf("track details failure: %w", err)
-			}
-			return nil
+	case path == showsDayOfYearPath:
+		results, err = c.getShows(ctx, url)
+		if err != nil {
+			return fmt.Errorf("shows list failure: %w", err)
 		}
-		if err := c.getAndPrintTracks(ctx, url); err != nil {
+	case path == randomShowPath:
+		results, err = c.getShow(ctx, url)
+		if err != nil {
+			return fmt.Errorf("show details failure: %w", err)
+		}
+	case path == tracksPath && c.Query != "":
+		results, err = c.getTrack(ctx, url)
+		if err != nil {
+			return fmt.Errorf("track details failure: %w", err)
+		}
+	case path == tracksPath:
+		results, err = c.getTracks(ctx, url)
+		if err != nil {
 			return fmt.Errorf("tracks list failure: %w", err)
 		}
-		return nil
-	case searchPath:
-		if err := c.getAndPrintSearch(ctx, url); err != nil {
+	case path == searchPath:
+		results, err = c.getSearch(ctx, url)
+		if err != nil {
 			return fmt.Errorf("search failure: %w", err)
 		}
-		return nil
-	// case "playlists":
+	// case path == "playlists" && c.Query != "":
 
-	case tagsPath:
-		if c.Query != "" {
-			if err := c.getAndPrintTag(ctx, url); err != nil {
-				return fmt.Errorf("tag details failure: %w", err)
-			}
-			return nil
+	case path == tagsPath && c.Query != "":
+		results, err = c.getTag(ctx, url)
+		if err != nil {
+			return fmt.Errorf("tag details failure: %w", err)
 		}
-		if err := c.getAndPrintTags(ctx, url); err != nil {
+	case path == tagsPath:
+		results, err = c.getTags(ctx, url)
+		if err != nil {
 			return fmt.Errorf("tags list failure: %w", err)
 		}
-		return nil
 	}
-	return nil
-}
-
-func (c *Client) getAndPrintEras(ctx context.Context, url string) error {
-	eras, err := c.getEras(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get eras data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, eras)
-	}
-	return prettyPrintEras(c.Output, eras)
+	return PrintResults(c.Output, results, c.PrintJSON, c.Verbose)
 }
 
 func (c *Client) getEras(ctx context.Context, url string) (ErasOutput, error) {
@@ -359,17 +343,6 @@ func (c *Client) getEras(ctx context.Context, url string) (ErasOutput, error) {
 	return o, nil
 }
 
-func (c *Client) getAndPrintEra(ctx context.Context, url string) error {
-	era, err := c.getEra(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get era data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, era)
-	}
-	return prettyPrintEra(c.Output, era)
-}
-
 func (c *Client) getEra(ctx context.Context, url string) (EraOutput, error) {
 	var resp EraResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
@@ -380,17 +353,6 @@ func (c *Client) getEra(ctx context.Context, url string) (EraOutput, error) {
 		Years:   resp.Era,
 	}
 	return o, nil
-}
-
-func (c *Client) getAndPrintYears(ctx context.Context, url string) error {
-	years, err := c.getYears(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get years data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, years)
-	}
-	return prettyPrintYears(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), years)
 }
 
 func (c *Client) getYears(ctx context.Context, url string) (YearsOutput, error) {
@@ -404,34 +366,12 @@ func (c *Client) getYears(ctx context.Context, url string) (YearsOutput, error) 
 	return o, nil
 }
 
-func (c *Client) getAndPrintYear(ctx context.Context, url string) error {
-	shows, err := c.getYear(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get year data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, shows)
-	}
-	return prettyPrintShows(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), shows, c.Verbose)
-}
-
 func (c *Client) getYear(ctx context.Context, url string) (ShowsOutput, error) {
 	var resp YearResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ShowsOutput{}, fmt.Errorf("unable to get year details: %w", err)
 	}
 	return convertShowsToOutput(resp.Data), nil
-}
-
-func (c *Client) getAndPrintShows(ctx context.Context, url string) error {
-	shows, err := c.getShows(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get shows data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, shows)
-	}
-	return prettyPrintShows(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), shows, c.Verbose)
 }
 
 func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) {
@@ -444,17 +384,6 @@ func (c *Client) getShows(ctx context.Context, url string) (ShowsOutput, error) 
 	o.TotalPages = resp.TotalPages
 	o.CurrentPage = resp.Page
 	return o, nil
-}
-
-func (c *Client) getAndPrintShow(ctx context.Context, url string) error {
-	show, err := c.getShow(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get show data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, show)
-	}
-	return prettyPrintShow(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), show, c.Verbose)
 }
 
 func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
@@ -478,34 +407,12 @@ func (c *Client) getShow(ctx context.Context, url string) (ShowOutput, error) {
 	return convertShowToOutput(resp.Data), nil
 }
 
-func (c *Client) getAndPrintTours(ctx context.Context, url string) error {
-	tours, err := c.getTours(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get tours data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, tours)
-	}
-	return prettyPrintTours(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tours)
-}
-
 func (c *Client) getTours(ctx context.Context, url string) (ToursOutput, error) {
 	var resp ToursResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return ToursOutput{}, fmt.Errorf("unable to get tours list: %w", err)
 	}
 	return convertToursToOutput(resp.Data), nil
-}
-
-func (c *Client) getAndPrintTour(ctx context.Context, url string) error {
-	tour, err := c.getTour(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get tour data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, tour)
-	}
-	return prettyPrintTour(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tour)
 }
 
 func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
@@ -522,17 +429,6 @@ func (c *Client) getTour(ctx context.Context, url string) (TourOutput, error) {
 	shows := convertShowsToOutput(resp.Data.Shows)
 	o.Shows = shows.Shows
 	return o, nil
-}
-
-func (c *Client) getAndPrintVenues(ctx context.Context, url string) error {
-	venues, err := c.getVenues(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get venues data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, venues)
-	}
-	return prettyPrintVenues(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), venues)
 }
 
 func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error) {
@@ -552,34 +448,12 @@ func (c *Client) getVenues(ctx context.Context, url string) (VenuesOutput, error
 	}, nil
 }
 
-func (c *Client) getAndPrintVenue(ctx context.Context, url string) error {
-	venue, err := c.getVenue(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get venue data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, venue)
-	}
-	return prettyPrintVenue(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), venue)
-}
-
 func (c *Client) getVenue(ctx context.Context, url string) (VenueOutput, error) {
 	var resp VenueResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return VenueOutput{}, fmt.Errorf("unable to get venue details: %w", err)
 	}
 	return convertVenueToOutput(resp.Data), nil
-}
-
-func (c *Client) getAndPrintTags(ctx context.Context, url string) error {
-	tags, err := c.getTags(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get tags data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, tags)
-	}
-	return prettyPrintTags(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tags)
 }
 
 func (c *Client) getTags(ctx context.Context, url string) (TagsOutput, error) {
@@ -596,34 +470,12 @@ func (c *Client) getTags(ctx context.Context, url string) (TagsOutput, error) {
 	}, nil
 }
 
-func (c *Client) getAndPrintTag(ctx context.Context, url string) error {
-	tag, err := c.getTag(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get tag data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, tag)
-	}
-	return prettyPrintTag(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tag)
-}
-
 func (c *Client) getTag(ctx context.Context, url string) (TagListItemOutput, error) {
 	var resp TagResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return TagListItemOutput{}, fmt.Errorf("unable to get tour details: %w", err)
 	}
 	return convertTagListItemToOutput(resp.Data), nil
-}
-
-func (c *Client) getAndPrintSongs(ctx context.Context, url string) error {
-	songs, err := c.getSongs(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get songs data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, songs)
-	}
-	return prettyPrintSongs(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), songs)
 }
 
 func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) {
@@ -645,34 +497,12 @@ func (c *Client) getSongs(ctx context.Context, url string) (SongsOutput, error) 
 	return o, nil
 }
 
-func (c *Client) getAndPrintSong(ctx context.Context, url string) error {
-	song, err := c.getSong(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get song data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, song)
-	}
-	return prettyPrintSong(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), song)
-}
-
 func (c *Client) getSong(ctx context.Context, url string) (SongOutput, error) {
 	var resp SongResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
 		return SongOutput{}, fmt.Errorf("unable to get song details: %w", err)
 	}
 	return convertSongToOutput(resp.Data), nil
-}
-
-func (c *Client) getAndPrintTracks(ctx context.Context, url string) error {
-	tracks, err := c.getTracks(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get tracks data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, tracks)
-	}
-	return prettyPrintTracks(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), tracks)
 }
 
 func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error) {
@@ -687,17 +517,6 @@ func (c *Client) getTracks(ctx context.Context, url string) (TracksOutput, error
 	return o, nil
 }
 
-func (c *Client) getAndPrintTrack(ctx context.Context, url string) error {
-	track, err := c.getTrack(ctx, url)
-	if err != nil {
-		return fmt.Errorf("couldn't get track data: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, track)
-	}
-	return prettyPrintTrack(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), track)
-}
-
 func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) {
 	var resp TrackResponse
 	if err := c.Get(ctx, url, &resp); err != nil {
@@ -710,18 +529,6 @@ func (c *Client) getTrack(ctx context.Context, url string) (TrackOutput, error) 
 		})
 	}
 	return convertTrackToOutput(resp.Data), nil
-}
-
-func (c *Client) getAndPrintSearch(ctx context.Context, url string) error {
-	result, err := c.getSearch(ctx, url)
-	if err != nil {
-		fmt.Fprint(os.Stderr, searchTips)
-		return fmt.Errorf("couldn't get search results: %w", err)
-	}
-	if c.PrintJSON {
-		return printJSON(c.Output, result)
-	}
-	return prettyPrintSearch(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), result)
 }
 
 func (c *Client) getSearch(ctx context.Context, url string) (SearchOutput, error) {

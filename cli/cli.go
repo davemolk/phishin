@@ -28,6 +28,17 @@ func printJSON(w io.Writer, data any) error {
 	return nil
 }
 
+type PrettyPrinter interface {
+	PrettyPrint(io.Writer, bool) error
+}
+
+func PrintResults(w io.Writer, pp PrettyPrinter, json, verbose bool) error {
+	if json {
+		return printJSON(w, pp)
+	}
+	return pp.PrettyPrint(w, verbose)
+}
+
 type trueAsYes bool
 
 func (s trueAsYes) String() string {
@@ -198,7 +209,7 @@ type ErasOutput struct {
 	Four  []string `json:"4.0"`
 }
 
-func prettyPrintEras(w io.Writer, e ErasOutput) error {
+func (e ErasOutput) PrettyPrint(w io.Writer, verbose bool) error {
 	_, err := fmt.Fprintf(w,
 		"Eras\n1.0: %v\n2.0: %v\n3.0: %v\n4.0: %v\n", strings.Join(e.One, ", "), strings.Join(e.Two, ", "), strings.Join(e.Three, ", "), strings.Join(e.Four, ", "),
 	)
@@ -214,7 +225,7 @@ type EraOutput struct {
 	Years   []string `json:"years"`
 }
 
-func prettyPrintEra(w io.Writer, e EraOutput) error {
+func (e EraOutput) PrettyPrint(w io.Writer, verbose bool) error {
 	_, err := fmt.Fprintf(w, "Era %s:\n%s\n", e.EraName, strings.Join(e.Years, ", "))
 	return err
 }
@@ -234,10 +245,11 @@ type YearsOutput struct {
 	Years []Year `json:"years"`
 }
 
-func prettyPrintYears(tw *tabwriter.Writer, years YearsOutput) error {
+func (y YearsOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Years:\tShow Count:")
-	for _, y := range years.Years {
-		fmt.Fprintf(tw, "%s\t%d\n", y.Date, y.ShowCount)
+	for _, year := range y.Years {
+		fmt.Fprintf(tw, "%s\t%d\n", year.Date, year.ShowCount)
 	}
 	return tw.Flush()
 }
@@ -249,6 +261,10 @@ type YearResponse struct {
 type YearOutput struct {
 	Shows ShowsOutput `json:"shows"`
 }
+
+// func (y YearOutput) PrettyPrint(w io.Writer, verbose bool) error {
+
+// }
 
 type SongsResponse struct {
 	TotalEntries int    `json:"total_entries"`
@@ -264,18 +280,19 @@ type SongsOutput struct {
 	Songs        []SongOutput `json:"songs"`
 }
 
-func prettyPrintSongs(tw *tabwriter.Writer, songs SongsOutput) error {
+func (s SongsOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Title:\tOriginal Artist:\tTracksCount:")
-	for _, s := range songs.Songs {
+	for _, song := range s.Songs {
 		artist := "Phish"
-		if !s.Original {
-			artist = s.Artist
+		if !song.Original {
+			artist = song.Artist
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%d\n", s.Title, artist, s.TracksCount)
+		fmt.Fprintf(tw, "%s\t%s\t%d\n", song.Title, artist, song.TracksCount)
 	}
 	fmt.Fprintln(tw)
-	if songs.TotalEntries != 0 {
-		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", songs.TotalEntries, songs.TotalPages, songs.CurrentPage)
+	if s.TotalEntries != 0 {
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", s.TotalEntries, s.TotalPages, s.CurrentPage)
 	}
 	return tw.Flush()
 }
@@ -306,17 +323,18 @@ type SongOutput struct {
 	Tracks      []TrackOutput `json:"tracks"`
 }
 
-func prettyPrintSong(tw *tabwriter.Writer, song SongOutput) error {
+func (s SongOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Title:\tID:\tOriginal Artist:\tTracksCount:")
 	artist := "Phish"
-	if !song.Original {
-		artist = song.Artist
+	if !s.Original {
+		artist = s.Artist
 	}
-	fmt.Fprintf(tw, "%s\t%d\t%s\t%d\n", song.Title, song.ID, artist, song.TracksCount)
+	fmt.Fprintf(tw, "%s\t%d\t%s\t%d\n", s.Title, s.ID, artist, s.TracksCount)
 	fmt.Fprintln(tw)
 	fmt.Fprintln(tw, "Tracks")
 	fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tDuration:\tMp3")
-	for _, t := range song.Tracks {
+	for _, t := range s.Tracks {
 		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.ShowDate, t.VenueName, t.VenueLocation, t.Duration, t.Mp3)
 	}
 	return tw.Flush()
@@ -346,10 +364,11 @@ type ToursOutput struct {
 	Tours []TourOutput `json:"tours"`
 }
 
-func prettyPrintTours(tw *tabwriter.Writer, tours ToursOutput) error {
+func (t ToursOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Name:\tStarts On:\tEnds On:\tShows Count:")
-	for _, t := range tours.Tours {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", t.Name, t.StartsOn, t.EndsOn, t.ShowsCount)
+	for _, tour := range t.Tours {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", tour.Name, tour.StartsOn, tour.EndsOn, tour.ShowsCount)
 	}
 	return tw.Flush()
 }
@@ -366,12 +385,13 @@ type TourOutput struct {
 	Shows      []ShowOutput `json:"shows"`
 }
 
-func prettyPrintTour(tw *tabwriter.Writer, tour TourOutput) error {
+func (t TourOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Name:\tStarts On:\tEnds On:\tShow Count:")
-	fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", tour.Name, tour.StartsOn, tour.EndsOn, tour.ShowsCount)
+	fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n", t.Name, t.StartsOn, t.EndsOn, t.ShowsCount)
 	fmt.Fprintln(tw)
 	fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
-	for _, show := range tour.Shows {
+	for _, show := range t.Shows {
 		sbd := trueAsYes(show.Sbd)
 		r := trueAsYes(show.Remastered)
 		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", show.ID, show.Date, show.VenueName, show.VenueLocation, show.Duration, sbd, r)
@@ -393,14 +413,15 @@ type VenuesOutput struct {
 	Venues       []VenueOutput `json:"venues"`
 }
 
-func prettyPrintVenues(tw *tabwriter.Writer, venues VenuesOutput) error {
+func (v VenuesOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Venue:\tLocation:\tShow Count:")
-	for _, v := range venues.Venues {
-		fmt.Fprintf(tw, "%s\t%s\t%d\n", v.Name, v.Location, v.ShowsCount)
+	for _, venue := range v.Venues {
+		fmt.Fprintf(tw, "%s\t%s\t%d\n", venue.Name, venue.Location, venue.ShowsCount)
 	}
 	fmt.Fprintln(tw)
-	if venues.CurrentPage != 0 {
-		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", venues.TotalEntries, venues.TotalPages, venues.CurrentPage)
+	if v.CurrentPage != 0 {
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", v.TotalEntries, v.TotalPages, v.CurrentPage)
 	}
 	return tw.Flush()
 }
@@ -425,15 +446,16 @@ type VenueOutput struct {
 	ShowDates  []string `json:"show_dates"`
 }
 
-func prettyPrintVenue(tw *tabwriter.Writer, venue VenueOutput) error {
+func (v VenueOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Venue:\tLocation:\tShow Count:")
-	fmt.Fprintf(tw, "%s\t%s\t%d\n", venue.Name, venue.Location, venue.ShowsCount)
+	fmt.Fprintf(tw, "%s\t%s\t%d\n", v.Name, v.Location, v.ShowsCount)
 	fmt.Fprintln(tw)
-	if len(venue.ShowDates) == 0 {
+	if len(v.ShowDates) == 0 {
 		return tw.Flush()
 	}
 	fmt.Fprintln(tw, "Show Dates")
-	for _, d := range venue.ShowDates {
+	for _, d := range v.ShowDates {
 		fmt.Fprintln(tw, d)
 	}
 	return tw.Flush()
@@ -464,29 +486,30 @@ type ShowsOutput struct {
 	Shows        []ShowOutput `json:"shows"`
 }
 
-func prettyPrintShows(tw *tabwriter.Writer, shows ShowsOutput, verbose bool) error {
+func (s ShowsOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	if verbose {
 		fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
-		for _, s := range shows.Shows {
-			sbd := trueAsYes(s.Sbd)
-			r := trueAsYes(s.Remastered)
-			fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Date, s.VenueName, s.VenueLocation, s.Duration, sbd, r)
+		for _, show := range s.Shows {
+			sbd := trueAsYes(show.Sbd)
+			r := trueAsYes(show.Remastered)
+			fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", show.ID, show.Date, show.VenueName, show.VenueLocation, show.Duration, sbd, r)
 		}
 		// the year details response prints a ShowsOutput but won't have any entries, for example
-		if shows.TotalEntries != 0 {
+		if s.TotalEntries != 0 {
 			fmt.Fprintln(tw)
-			fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
+			fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", s.TotalEntries, s.TotalPages, s.CurrentPage)
 		}
 		return tw.Flush()
 	}
 	fmt.Fprintln(tw, "Date:\tVenue:\tLocation:\tDuration:")
-	for _, s := range shows.Shows {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", s.Date, s.VenueName, s.VenueLocation, s.Duration)
+	for _, show := range s.Shows {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", show.Date, show.VenueName, show.VenueLocation, show.Duration)
 	}
 	// the year details response prints a ShowsOutput but won't have any entries, for example
-	if shows.TotalEntries != 0 {
+	if s.TotalEntries != 0 {
 		fmt.Fprintln(tw)
-		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", shows.TotalEntries, shows.TotalPages, shows.CurrentPage)
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", s.TotalEntries, s.TotalPages, s.CurrentPage)
 	}
 	return tw.Flush()
 }
@@ -551,34 +574,35 @@ type ShowOutput struct {
 	Tracks        []TrackOutput `json:"tracks"`
 }
 
-func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error {
+func (s ShowOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	if verbose {
 		fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tDuration:\tSoundboard:\tRemastered:")
-		sbd := trueAsYes(show.Sbd)
-		r := trueAsYes(show.Remastered)
-		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", show.ID, show.Date, show.VenueName, show.VenueLocation, show.Duration, sbd, r)
+		sbd := trueAsYes(s.Sbd)
+		r := trueAsYes(s.Remastered)
+		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Date, s.VenueName, s.VenueLocation, s.Duration, sbd, r)
 		fmt.Fprintln(tw)
-		if len(show.Tags) != 0 {
+		if len(s.Tags) != 0 {
 			fmt.Fprintln(tw, "Show Tags:")
-			tagInfo := convertTagsToString(show.Tags)
+			tagInfo := convertTagsToString(s.Tags)
 			fmt.Fprintln(tw, tagInfo)
 			fmt.Fprintln(tw)
 		}
 		// should always have tracks but worth a check
-		if len(show.Tracks) == 0 {
+		if len(s.Tracks) == 0 {
 			return tw.Flush()
 		}
 		longestTitleLen := 0
-		for _, t := range show.Tracks {
+		for _, t := range s.Tracks {
 			if len(t.Title) > longestTitleLen {
 				longestTitleLen = len(t.Title)
 			}
 		}
-		fmt.Fprintln(tw, show.Tracks[0].SetName)
-		for i, t := range show.Tracks {
-			if i > 1 && t.SetName != show.Tracks[i-1].SetName {
+		fmt.Fprintln(tw, s.Tracks[0].SetName)
+		for i, t := range s.Tracks {
+			if i > 1 && t.SetName != s.Tracks[i-1].SetName {
 				fmt.Fprintln(tw)
-				fmt.Fprintln(tw, show.Tracks[i].SetName)
+				fmt.Fprintln(tw, s.Tracks[i].SetName)
 			}
 			// we want the title - duration distance the same
 			// across sets, so make all titles the same length
@@ -588,7 +612,7 @@ func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error 
 		}
 		fmt.Fprintln(tw)
 		fmt.Fprintln(tw, "Track Info:")
-		for _, t := range show.Tracks {
+		for _, t := range s.Tracks {
 			fmt.Fprintln(tw, t.Title)
 			fmt.Fprintln(tw, t.Mp3)
 			tagInfo := convertTagsToString(t.Tags)
@@ -600,23 +624,23 @@ func prettyPrintShow(tw *tabwriter.Writer, show ShowOutput, verbose bool) error 
 		return tw.Flush()
 	}
 	fmt.Fprintln(tw, "Date:\tVenue:\tLocation:")
-	fmt.Fprintf(tw, "%s\t%s\t%s\n", show.Date, show.VenueName, show.VenueLocation)
+	fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Date, s.VenueName, s.VenueLocation)
 	fmt.Fprintln(tw)
 	// should always have tracks but worth a check
-	if len(show.Tracks) == 0 {
+	if len(s.Tracks) == 0 {
 		return tw.Flush()
 	}
 	longestTitleLen := 0
-	for _, t := range show.Tracks {
+	for _, t := range s.Tracks {
 		if len(t.Title) > longestTitleLen {
 			longestTitleLen = len(t.Title)
 		}
 	}
-	fmt.Fprintln(tw, show.Tracks[0].SetName)
-	for i, t := range show.Tracks {
-		if i > 1 && t.SetName != show.Tracks[i-1].SetName {
+	fmt.Fprintln(tw, s.Tracks[0].SetName)
+	for i, t := range s.Tracks {
+		if i > 1 && t.SetName != s.Tracks[i-1].SetName {
 			fmt.Fprintln(tw)
-			fmt.Fprintln(tw, show.Tracks[i].SetName)
+			fmt.Fprintln(tw, s.Tracks[i].SetName)
 		}
 		toAdd := longestTitleLen - len(t.Title)
 		title := t.Title + strings.Repeat(" ", toAdd)
@@ -661,14 +685,15 @@ type TracksOutput struct {
 	Tracks       []TrackOutput `json:"tracks"`
 }
 
-func prettyPrintTracks(tw *tabwriter.Writer, tracks TracksOutput) error {
+func (t TracksOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tTitle:\tMp3:")
-	for _, t := range tracks.Tracks {
-		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.ShowDate, t.VenueName, t.VenueLocation, t.Title, t.Mp3)
+	for _, track := range t.Tracks {
+		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", track.ID, track.ShowDate, track.VenueName, track.VenueLocation, track.Title, track.Mp3)
 	}
 	fmt.Fprintln(tw)
-	if tracks.TotalEntries != 0 {
-		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", tracks.TotalEntries, tracks.TotalPages, tracks.CurrentPage)
+	if t.TotalEntries != 0 {
+		fmt.Fprintf(tw, "Total Entries: %d\tTotal Pages: %d\tResult Page: %d\n", t.TotalEntries, t.TotalPages, t.CurrentPage)
 	}
 	return tw.Flush()
 }
@@ -703,15 +728,16 @@ type TrackOutput struct {
 	Mp3           string `json:"mp3"`
 }
 
-func prettyPrintTrack(tw *tabwriter.Writer, track TrackOutput) error {
+func (t TrackOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "ID:\tDate:\tVenue:\tLocation:\tTitle:\tDuration\tSet\tMp3")
-	fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", track.ID, track.ShowDate, track.VenueName, track.VenueLocation, track.Title, track.Duration, track.SetName, track.Mp3)
+	fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.ShowDate, t.VenueName, t.VenueLocation, t.Title, t.Duration, t.SetName, t.Mp3)
 	fmt.Fprintln(tw)
-	if len(track.Tags) != 0 {
+	if len(t.Tags) != 0 {
 		fmt.Fprintln(tw, "Tags")
 		fmt.Fprintln(tw, "Name:\tGroup:\tNotes:")
-		for _, t := range track.Tags {
-			fmt.Fprintf(tw, "%s\t%s\t%s\n", t.Name, t.Group, t.Notes)
+		for _, tag := range t.Tags {
+			fmt.Fprintf(tw, "%s\t%s\t%s\n", tag.Name, tag.Group, tag.Notes)
 		}
 	}
 	return tw.Flush()
@@ -725,10 +751,11 @@ type TagsOutput struct {
 	Tags []TagListItemOutput `json:"tags"`
 }
 
-func prettyPrintTags(tw *tabwriter.Writer, tags TagsOutput) error {
+func (t TagsOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Name:\tDescription:\tGroup:")
-	for _, t := range tags.Tags {
-		fmt.Fprintf(tw, "%s\t%s\t%s\n", t.Name, t.Description, t.Group)
+	for _, tag := range t.Tags {
+		fmt.Fprintf(tw, "%s\t%s\t%s\n", tag.Name, tag.Description, tag.Group)
 	}
 	return tw.Flush()
 }
@@ -756,22 +783,23 @@ type TagListItemOutput struct {
 	TrackIds    []int  `json:"track_ids"`
 }
 
-func prettyPrintTag(tw *tabwriter.Writer, tag TagListItemOutput) error {
+func (t TagListItemOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	fmt.Fprintln(tw, "Name:\tDescription:\tGroup:")
-	fmt.Fprintf(tw, "%s\t%s\t%s\n", tag.Name, tag.Description, tag.Group)
+	fmt.Fprintf(tw, "%s\t%s\t%s\n", t.Name, t.Description, t.Group)
 	fmt.Fprintln(tw)
-	showIDs := make([]string, 0, len(tag.ShowIds))
-	for _, i := range tag.ShowIds {
+	showIDs := make([]string, 0, len(t.ShowIds))
+	for _, i := range t.ShowIds {
 		showIDs = append(showIDs, strconv.Itoa(i))
 	}
-	trackIDs := make([]string, 0, len(tag.TrackIds))
-	for _, i := range tag.TrackIds {
+	trackIDs := make([]string, 0, len(t.TrackIds))
+	for _, i := range t.TrackIds {
 		trackIDs = append(trackIDs, strconv.Itoa(i))
 	}
-	fmt.Fprintf(tw, "Show IDs Where %s Appears\n", tag.Name)
+	fmt.Fprintf(tw, "Show IDs Where %s Appears\n", t.Name)
 	fmt.Fprintf(tw, "%s\n", strings.Join(showIDs, ", "))
 	fmt.Fprintln(tw)
-	fmt.Fprintf(tw, "Track IDs Where %s Appears\n", tag.Name)
+	fmt.Fprintf(tw, "Track IDs Where %s Appears\n", t.Name)
 	fmt.Fprintf(tw, "%s\n", strings.Join(trackIDs, ", "))
 
 	return tw.Flush()
@@ -800,8 +828,13 @@ type TrackTagOutput struct {
 	Transcript string `json:"transcript"`
 }
 
-func prettyPrintTrackTags(tw *tabwriter.Writer, tags []TrackTagOutput) error {
-	for _, tag := range tags {
+type TrackTagsOutput struct {
+	Tags []TrackTagOutput
+}
+
+func (t TrackTagsOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
+	for _, tag := range t.Tags {
 		fmt.Fprintln(tw, "ID:\tTrackID:\tTagID:")
 		fmt.Fprintf(tw, "%d\t%d\t%d\n", tag.ID, tag.TrackID, tag.TagID)
 		if tag.Notes != "" {
@@ -894,74 +927,82 @@ type SearchOutput struct {
 	} `json:"results"`
 }
 
-func prettyPrintSearch(tw *tabwriter.Writer, search SearchOutput) error {
+func (s SearchOutput) PrettyPrint(w io.Writer, verbose bool) error {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns)
 	var results bool
-	if search.Results.ExactShow != nil {
+	if s.Results.ExactShow != nil {
 		results = true
 		fmt.Fprintln(tw, "*** EXACT SHOW RESULTS ***")
-		if err := prettyPrintShow(tw, *search.Results.ExactShow, true); err != nil {
+		if err := s.Results.ExactShow.PrettyPrint(w, true); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.OtherShows) != 0 {
+	if len(s.Results.OtherShows) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** SHOW RESULTS ***")
-		if err := prettyPrintShows(tw, ShowsOutput{Shows: search.Results.OtherShows}, true); err != nil {
+		so := ShowsOutput{Shows: s.Results.OtherShows}
+		if err := so.PrettyPrint(w, true); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.ShowTags) != 0 {
+	if len(s.Results.ShowTags) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** SHOW TAG RESULTS ***")
 		// todo
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.Songs) != 0 {
+	if len(s.Results.Songs) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** SONG RESULTS ***")
-		if err := prettyPrintSongs(tw, SongsOutput{Songs: search.Results.Songs}); err != nil {
+		so := SongsOutput{Songs: s.Results.Songs}
+		if err := so.PrettyPrint(w, false); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.Tags) != 0 {
+	if len(s.Results.Tags) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** TAG RESULTS ***")
-		if err := prettyPrintTags(tw, TagsOutput{Tags: search.Results.Tags}); err != nil {
+		to := TagsOutput{Tags: s.Results.Tags}
+		if err := to.PrettyPrint(w, false); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.Tours) != 0 {
+	if len(s.Results.Tours) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** TOUR RESULTS ***")
-		if err := prettyPrintTours(tw, ToursOutput{Tours: search.Results.Tours}); err != nil {
+		to := ToursOutput{Tours: s.Results.Tours}
+		if err := to.PrettyPrint(w, false); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.TrackTags) != 0 {
+	if len(s.Results.TrackTags) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** TRACK TAG RESULTS ***")
-		if err := prettyPrintTrackTags(tw, search.Results.TrackTags); err != nil {
+		to := TrackTagsOutput{Tags: s.Results.TrackTags}
+		if err := to.PrettyPrint(w, false); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.Tracks) != 0 {
+	if len(s.Results.Tracks) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** TRACK RESULTS ***")
-		if err := prettyPrintTracks(tw, TracksOutput{Tracks: search.Results.Tracks}); err != nil {
+		to := TracksOutput{Tracks: s.Results.Tracks}
+		if err := to.PrettyPrint(w, false); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
 	}
-	if len(search.Results.Venues) != 0 {
+	if len(s.Results.Venues) != 0 {
 		results = true
 		fmt.Fprintln(tw, "*** VENUE RESULTS ***")
-		if err := prettyPrintVenues(tw, VenuesOutput{Venues: search.Results.Venues}); err != nil {
+		vo := VenuesOutput{Venues: s.Results.Venues}
+		if err := vo.PrettyPrint(w, false); err != nil {
 			return err
 		}
 		fmt.Fprintln(tw)
