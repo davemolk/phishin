@@ -358,6 +358,7 @@ func TestClientRun(t *testing.T) {
 		json      bool
 		verbose   bool
 		query     string
+		raw       bool
 	}{
 		{
 			name:      "eras",
@@ -367,6 +368,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "eras json",
@@ -376,6 +378,7 @@ func TestClientRun(t *testing.T) {
 			json:      true,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "era",
@@ -385,6 +388,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "3.0",
+			raw:       false,
 		},
 		{
 			name:      "era",
@@ -394,6 +398,7 @@ func TestClientRun(t *testing.T) {
 			json:      true,
 			verbose:   false,
 			query:     "3.0",
+			raw:       false,
 		},
 		{
 			name:      "years",
@@ -403,6 +408,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "year non-verbose",
@@ -412,6 +418,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "1994",
+			raw:       false,
 		},
 		{
 			name:      "year verbose",
@@ -421,6 +428,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   true,
 			query:     "1994",
+			raw:       false,
 		},
 		{
 			name:      "shows non-verbose",
@@ -430,6 +438,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "shows verbose",
@@ -439,6 +448,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   true,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "show non-verbose",
@@ -448,6 +458,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "1990-04-05",
+			raw:       false,
 		},
 		{
 			name:      "show verbose",
@@ -457,6 +468,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   true,
 			query:     "1990-04-05",
+			raw:       false,
 		},
 		{
 			name:      "venues",
@@ -466,6 +478,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "venue",
@@ -475,6 +488,17 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "the-academy",
+			raw:       false,
+		},
+		{
+			name:      "venue raw",
+			serveFile: "../testdata/nectars.json",
+			path:      "venues",
+			golden:    "nectars.golden",
+			json:      false,
+			verbose:   false,
+			query:     "nectar-s",
+			raw:       true,
 		},
 		{
 			name:      "tags",
@@ -484,6 +508,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "tag",
@@ -493,6 +518,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "jamcharts",
+			raw:       false,
 		},
 		{
 			name:      "tours",
@@ -502,6 +528,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "tour",
@@ -511,6 +538,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "1985-tour",
+			raw:       false,
 		},
 		{
 			name:      "songs",
@@ -520,6 +548,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "song",
@@ -529,6 +558,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "david-bowie",
+			raw:       false,
 		},
 		{
 			name:      "tracks",
@@ -538,6 +568,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "",
+			raw:       false,
 		},
 		{
 			name:      "track",
@@ -547,6 +578,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "stash",
+			raw:       false,
 		},
 		{
 			name:      "search",
@@ -556,6 +588,7 @@ func TestClientRun(t *testing.T) {
 			json:      false,
 			verbose:   false,
 			query:     "boulder",
+			raw:       false,
 		},
 	}
 	for _, tc := range tt {
@@ -565,6 +598,7 @@ func TestClientRun(t *testing.T) {
 		c.PrintJSON = tc.json
 		c.Verbose = tc.verbose
 		c.Query = tc.query
+		c.RawOutput = tc.raw
 		ts := httptest.NewTLSServer(http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				http.ServeFile(w, r, tc.serveFile)

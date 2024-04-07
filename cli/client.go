@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/tabwriter"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -179,13 +178,10 @@ func (c *Client) getAndPrintRaw(ctx context.Context, url string) error {
 		return fmt.Errorf("unexpected response status: %q", resp.Status)
 	}
 	g := &GenericResponse{}
-	json.NewDecoder(resp.Body).Decode(g)
-	b, err := json.MarshalIndent(g, "", "  ")
-	if err != nil {
-		return fmt.Errorf("unable to marshal json: %w", err)
+	if err = json.NewDecoder(resp.Body).Decode(g); err != nil {
+		return fmt.Errorf("unable to read response body: %w", err)
 	}
-	fmt.Fprintln(tabwriter.NewWriter(c.Output, 0, 4, 2, ' ', tabwriter.DiscardEmptyColumns), string(b))
-	return nil
+	return printJSON(c.Output, g)
 }
 
 func (c *Client) Get(ctx context.Context, url string, data any) error {
@@ -272,31 +268,15 @@ func (c *Client) run(ctx context.Context, path string) error {
 		if err != nil {
 			return fmt.Errorf("venues list failure: %w", err)
 		}
-	case path == showsPath && c.Query != "":
+	case (path == showsPath || path == showOnDatePath || path == randomShowPath) && c.Query != "":
 		results, err = c.getShow(ctx, url)
 		if err != nil {
 			return fmt.Errorf("show details failure: %w", err)
 		}
-	// todo consolidate these
-	case path == showsPath:
+	case path == showsPath || path == showsDayOfYearPath:
 		results, err = c.getShows(ctx, url)
 		if err != nil {
 			return fmt.Errorf("shows list failure: %w", err)
-		}
-	case path == showOnDatePath:
-		results, err = c.getShow(ctx, url)
-		if err != nil {
-			return fmt.Errorf("show details failure: %w", err)
-		}
-	case path == showsDayOfYearPath:
-		results, err = c.getShows(ctx, url)
-		if err != nil {
-			return fmt.Errorf("shows list failure: %w", err)
-		}
-	case path == randomShowPath:
-		results, err = c.getShow(ctx, url)
-		if err != nil {
-			return fmt.Errorf("show details failure: %w", err)
 		}
 	case path == tracksPath && c.Query != "":
 		results, err = c.getTrack(ctx, url)
